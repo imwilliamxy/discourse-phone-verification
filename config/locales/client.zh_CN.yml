@@ -1,4 +1,9 @@
 zh_CN:
+  admin_js:
+    admin:
+      site_settings:
+        categories:
+          phone_gatekeeper: "手机号验证 (Phone Gatekeeper)"
   js:
     phone_gatekeeper:
       title: "手机号验证 (+1)"
@@ -14,7 +19,18 @@ zh_CN:
       unbind_btn: "解除绑定"
       unbind_confirm: "确定要解除该手机号绑定吗？解绑后将立即失去专属板块的访问权限，直到重新绑定。"
       status_qualifies: "您的账号已满足所有条件，拥有受限板块的准入权限。"
-      status_needs_trust_level: "手机号已验证！提示：访问受限板块还需达到信任等级 %{required_level}（当前等级：%{current_level}）。"
+      status_needs_trust_level: "手机号已验证。"
       success_sent: "验证码已成功发送至您的手机。"
       success_verified: "手机号绑定成功！"
       success_unbound: "手机号已成功解除绑定。"
+    admin:
+      phone_gatekeeper:
+        title: "手机号门禁信息"
+        phone_number: "绑定手机号"
+        verified_at: "验证时间"
+        status: "验证状态"
+        not_verified: "未绑定手机号"
+        verified: "已验证"
+        group_status: "门禁用户组状态"
+        in_group: "已加入专属受限用户组"
+        not_in_group: "未加入专属用户组（未满足信任等级或未绑定）"

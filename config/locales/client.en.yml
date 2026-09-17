@@ -1,4 +1,9 @@
 en:
+  admin_js:
+    admin:
+      site_settings:
+        categories:
+          phone_gatekeeper: "Phone Gatekeeper"
   js:
     phone_gatekeeper:
       title: "Phone Verification"
@@ -14,7 +19,18 @@ en:
       unbind_btn: "Unbind Phone"
       unbind_confirm: "Are you sure you want to unbind your phone number? You will lose access to restricted categories until you re-verify."
       status_qualifies: "Your account meets all requirements and has access to gated categories."
-      status_needs_trust_level: "Phone verified! Note: Level %{required_level} is required to access restricted categories (Current: Level %{current_level})."
+      status_needs_trust_level: "Phone verified."
       success_sent: "Verification code sent to your phone."
       success_verified: "Phone number verified successfully!"
       success_unbound: "Phone number unbound successfully."
+    admin:
+      phone_gatekeeper:
+        title: "Phone Verification"
+        phone_number: "Bound Phone"
+        verified_at: "Verified At"
+        status: "Verification Status"
+        not_verified: "Not Verified"
+        verified: "Verified"
+        group_status: "Gatekeeper Group Status"
+        in_group: "Member of gated group"
+        not_in_group: "Not in gated group"

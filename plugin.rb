@@ -15,6 +15,13 @@ end
 require_relative "lib/phone_gatekeeper/engine"
 
 after_initialize do
+  require_relative "lib/phone_gatekeeper/site_settings_extension"
+  SiteSettings::LabelFormatter.singleton_class.prepend(::PhoneGatekeeper::LocalizedLabelFormatter)
+  SiteSetting.singleton_class.prepend(::PhoneGatekeeper::LocalizedSiteSettingExtension)
+
+  require_relative "app/services/problem_check/phone_gatekeeper_missing_dynamic_groups"
+  register_problem_check ProblemCheck::PhoneGatekeeperMissingDynamicGroups
+
   # Event hooks for Trust Level & account status changes
   on(:user_promoted) do |payload|
     user = payload[:user] || User.find_by(id: payload[:user_id])

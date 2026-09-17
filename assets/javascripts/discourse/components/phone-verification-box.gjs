@@ -2,17 +2,18 @@ import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
 import { action } from "@ember/object";
 import { service } from "@ember/service";
-import hash from "ember-composable-helpers/helpers/hash";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
-import { gt, not, or } from "discourse/truth-helpers";
+import { and, gt, not, or } from "discourse/truth-helpers";
 import DButton from "discourse/ui-kit/d-button";
 import dIcon from "discourse/ui-kit/helpers/d-icon";
 import { i18n } from "discourse-i18n";
 
 export default class PhoneVerificationBox extends Component {
   @service siteSettings;
+  @service currentUser;
   @service dialog;
+  @service toasts;
 
   @tracked loading = true;
   @tracked sendingCode = false;
@@ -35,7 +36,11 @@ export default class PhoneVerificationBox extends Component {
 
   constructor() {
     super(...arguments);
-    this.fetchStatus();
+    if (this.isSelf && this.siteSettings.phone_gatekeeper_enabled) {
+      this.fetchStatus();
+    } else {
+      this.loading = false;
+    }
   }
 
   willDestroy() {
@@ -45,8 +50,27 @@ export default class PhoneVerificationBox extends Component {
     }
   }
 
+  get isSelf() {
+    if (!this.currentUser) {
+      return false;
+    }
+    if (!this.args.model) {
+      return true;
+    }
+    return this.args.model.id === this.currentUser.id;
+  }
+
   get qualifiesForGatedCategories() {
     return this.phoneVerified && this.currentTrustLevel >= this.minTrustLevel;
+  }
+
+  get sendCodeButtonLabel() {
+    if (this.cooldownSeconds > 0) {
+      return i18n("phone_gatekeeper.resend_code_btn", {
+        seconds: this.cooldownSeconds,
+      });
+    }
+    return i18n("phone_gatekeeper.send_code_btn");
   }
 
   @action
@@ -61,7 +85,9 @@ export default class PhoneVerificationBox extends Component {
       this.minTrustLevel = response.min_trust_level;
       this.currentTrustLevel = response.current_trust_level;
     } catch (e) {
-      popupAjaxError(e);
+      if (e.status !== 404) {
+        popupAjaxError(e);
+      }
     } finally {
       this.loading = false;
     }
@@ -81,6 +107,9 @@ export default class PhoneVerificationBox extends Component {
       });
       this.codeSent = true;
       this.startCooldown(res.cooldown_seconds || 60);
+      this.toasts.success({
+        data: { message: i18n("phone_gatekeeper.success_sent") },
+      });
     } catch (e) {
       popupAjaxError(e);
     } finally {
@@ -106,6 +135,9 @@ export default class PhoneVerificationBox extends Component {
       this.inputCode = "";
       this.inputPhoneNumber = "";
       await this.fetchStatus();
+      this.toasts.success({
+        data: { message: i18n("phone_gatekeeper.success_verified") },
+      });
     } catch (e) {
       popupAjaxError(e);
     } finally {
@@ -128,6 +160,9 @@ export default class PhoneVerificationBox extends Component {
       this.phoneVerified = false;
       this.maskedPhoneNumber = "";
       await this.fetchStatus();
+      this.toasts.success({
+        data: { message: i18n("phone_gatekeeper.success_unbound") },
+      });
     } catch (e) {
       popupAjaxError(e);
     } finally {
@@ -159,7 +194,7 @@ export default class PhoneVerificationBox extends Component {
   }
 
   <template>
-    {{#if this.siteSettings.phone_gatekeeper_enabled}}
+    {{#if (and this.siteSettings.phone_gatekeeper_enabled this.isSelf)}}
       <div class="phone-gatekeeper-section">
         <div class="phone-gatekeeper-header">
           {{dIcon "mobile-screen"}}
@@ -190,11 +225,7 @@ export default class PhoneVerificationBox extends Component {
             {{else}}
               <div class="qualification-info">
                 {{dIcon "circle-info"}}
-                {{i18n
-                  "phone_gatekeeper.status_needs_trust_level"
-                  required_level=this.minTrustLevel
-                  current_level=this.currentTrustLevel
-                }}
+                {{i18n "phone_gatekeeper.status_needs_trust_level"}}
               </div>
             {{/if}}
 
@@ -212,6 +243,7 @@ export default class PhoneVerificationBox extends Component {
           <div class="phone-gatekeeper-form">
             <div class="input-group">
               <input
+                aria-label={{i18n "phone_gatekeeper.phone_label"}}
                 disabled={{this.sendingCode}}
                 oninput={{this.onPhoneInput}}
                 placeholder={{i18n "phone_gatekeeper.phone_placeholder"}}
@@ -227,18 +259,14 @@ export default class PhoneVerificationBox extends Component {
                 }}
                 @icon="paper-plane"
                 @isLoading={{this.sendingCode}}
-                @label={{if
-                  this.cooldownSeconds
-                  "phone_gatekeeper.resend_code_btn"
-                  "phone_gatekeeper.send_code_btn"
-                }}
-                @labelArgs={{hash seconds=this.cooldownSeconds}}
+                @translatedLabel={{this.sendCodeButtonLabel}}
               />
             </div>
 
             {{#if this.codeSent}}
               <div class="input-group">
                 <input
+                  aria-label={{i18n "phone_gatekeeper.code_label"}}
                   maxlength="6"
                   oninput={{this.onCodeInput}}
                   placeholder={{i18n "phone_gatekeeper.code_placeholder"}}

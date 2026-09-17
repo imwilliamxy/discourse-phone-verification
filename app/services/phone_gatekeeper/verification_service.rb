@@ -113,47 +113,84 @@ module PhoneGatekeeper
 
     def verify_code(phone_number:, code:)
       formatted_phone = UserPhoneRecord.normalize(phone_number)
+      unless UserPhoneRecord.valid_us_phone?(formatted_phone)
+        return(
+          {
+            success: false,
+            error: I18n.t("phone_gatekeeper.errors.invalid_phone_number")
+          }
+        )
+      end
+
+      # Check if phone is already taken by another active user
+      if UserPhoneRecord
+           .where(phone_number: formatted_phone, active: true)
+           .where.not(user_id: @user.id)
+           .exists?
+        return(
+          {
+            success: false,
+            error: I18n.t("phone_gatekeeper.errors.phone_already_used")
+          }
+        )
+      end
+
+      cleaned_code = code.to_s.strip
       code_key = "phone_gatekeeper:code:#{@user.id}"
-      data = Discourse.redis.get(code_key)
 
-      unless data
-        return(
-          {
-            success: false,
-            error: I18n.t("phone_gatekeeper.errors.invalid_code")
-          }
-        )
-      end
-
-      parsed = JSON.parse(data)
-      stored_phone = parsed["phone"]
-      stored_code = parsed["code"]
-      attempts = parsed["attempts"].to_i
-
-      if attempts >= MAX_FAILED_ATTEMPTS
+      if SiteSetting.phone_gatekeeper_debug_mode
+        # Debug mode: accept any 6-digit code without checking Redis cache
+        unless cleaned_code =~ /^\d{6}$/
+          return(
+            {
+              success: false,
+              error: I18n.t("phone_gatekeeper.errors.invalid_code")
+            }
+          )
+        end
         Discourse.redis.del(code_key)
-        return(
-          {
-            success: false,
-            error: I18n.t("phone_gatekeeper.errors.too_many_attempts")
-          }
-        )
-      end
+      else
+        # Production mode: strictly verify against Redis stored code & rate limits
+        data = Discourse.redis.get(code_key)
+        unless data
+          return(
+            {
+              success: false,
+              error: I18n.t("phone_gatekeeper.errors.invalid_code")
+            }
+          )
+        end
 
-      if stored_phone != formatted_phone || stored_code != code.to_s.strip
-        parsed["attempts"] = attempts + 1
-        ttl = Discourse.redis.ttl(code_key)
-        Discourse.redis.setex(code_key, [ttl, 1].max, parsed.to_json)
-        return(
-          {
-            success: false,
-            error: I18n.t("phone_gatekeeper.errors.invalid_code")
-          }
-        )
-      end
+        parsed = JSON.parse(data)
+        stored_phone = parsed["phone"]
+        stored_code = parsed["code"]
+        attempts = parsed["attempts"].to_i
 
-      # Code is valid! Consume it.
-      Discourse.redis.del(code_key)
+        if attempts >= MAX_FAILED_ATTEMPTS
+          Discourse.redis.del(code_key)
+          return(
+            {
+              success: false,
+              error: I18n.t("phone_gatekeeper.errors.too_many_attempts")
+            }
+          )
+        end
+
+        if stored_phone != formatted_phone || stored_code != cleaned_code
+          parsed["attempts"] = attempts + 1
+          ttl = Discourse.redis.ttl(code_key)
+          Discourse.redis.setex(code_key, [ttl, 1].max, parsed.to_json)
+          return(
+            {
+              success: false,
+              error: I18n.t("phone_gatekeeper.errors.invalid_code")
+            }
+          )
+        end
+
+        # Code is valid! Consume it.
+        Discourse.redis.del(code_key)
+      end
 
       # Deactivate any previous active record for this user
       UserPhoneRecord.where(user_id: @user.id, active: true).update_all(
@@ -168,8 +205,9 @@ module PhoneGatekeeper
           active: true
         )
 
-      # Trigger Group Sync
+      # Trigger Group Sync & Events
       GroupSyncService.sync_user(@user)
+      DiscourseEvent.trigger(:phone_gatekeeper_user_verified, @user, record)
 
       {
         success: true,
@@ -191,6 +229,7 @@ module PhoneGatekeeper
 
       active_record.deactivate!
       GroupSyncService.sync_user(@user)
+      DiscourseEvent.trigger(:phone_gatekeeper_user_unbound, @user)
 
       { success: true }
     end

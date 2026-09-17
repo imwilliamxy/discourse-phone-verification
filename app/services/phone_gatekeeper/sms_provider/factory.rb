@@ -7,6 +7,8 @@ module PhoneGatekeeper
         case provider_name.to_s
         when "aws_sns"
           AwsSns.new
+        when "twilio"
+          Twilio.new
         else
           raise "Unknown SMS provider: #{provider_name}"
         end

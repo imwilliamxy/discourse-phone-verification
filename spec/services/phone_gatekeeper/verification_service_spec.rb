@@ -42,36 +42,80 @@ RSpec.describe PhoneGatekeeper::VerificationService do
   end
 
   describe "#verify_code" do
-    it "verifies correct code and creates active phone record" do
-      described_class.send_code(user: user, phone_number: phone)
-      code_data =
-        JSON.parse(Discourse.redis.get("phone_gatekeeper:code:#{user.id}"))
-      valid_code = code_data["code"]
+    context "when debug mode is disabled (production mode)" do
+      before { SiteSetting.phone_gatekeeper_debug_mode = false }
 
-      result =
-        described_class.verify_code(
-          user: user,
-          phone_number: phone,
-          code: valid_code
-        )
-      expect(result[:success]).to be true
-      expect(result[:phone_number_masked]).to eq("+1 (***) ***-2671")
+      it "verifies correct code from Redis and creates active phone record" do
+        described_class.send_code(user: user, phone_number: phone)
+        code_data =
+          JSON.parse(Discourse.redis.get("phone_gatekeeper:code:#{user.id}"))
+        valid_code = code_data["code"]
 
-      expect(
-        PhoneGatekeeper::UserPhoneRecord.where(user: user, active: true).exists?
-      ).to be true
+        result =
+          described_class.verify_code(
+            user: user,
+            phone_number: phone,
+            code: valid_code
+          )
+        expect(result[:success]).to be true
+        expect(result[:phone_number_masked]).to eq("+1 (***) ***-2671")
+        expect(
+          PhoneGatekeeper::UserPhoneRecord.where(user: user, active: true).exists?
+        ).to be true
+        expect(Discourse.redis.get("phone_gatekeeper:code:#{user.id}")).to be_nil
+      end
+
+      it "rejects incorrect code and limits attempts" do
+        described_class.send_code(user: user, phone_number: phone)
+        result =
+          described_class.verify_code(
+            user: user,
+            phone_number: phone,
+            code: "000000"
+          )
+        expect(result[:success]).to be false
+        expect(result[:error]).to be_present
+      end
+
+      it "rejects verification when no code was sent" do
+        result =
+          described_class.verify_code(
+            user: user,
+            phone_number: phone,
+            code: "123456"
+          )
+        expect(result[:success]).to be false
+        expect(result[:error]).to be_present
+      end
     end
 
-    it "rejects incorrect code and limits attempts" do
-      described_class.send_code(user: user, phone_number: phone)
-      result =
-        described_class.verify_code(
-          user: user,
-          phone_number: phone,
-          code: "000000"
-        )
-      expect(result[:success]).to be false
-      expect(result[:error]).to be_present
+    context "when debug mode is enabled" do
+      before { SiteSetting.phone_gatekeeper_debug_mode = true }
+
+      it "verifies any 6-digit code without sending code" do
+        result =
+          described_class.verify_code(
+            user: user,
+            phone_number: phone,
+            code: "123456"
+          )
+        expect(result[:success]).to be true
+        expect(result[:phone_number_masked]).to eq("+1 (***) ***-2671")
+        expect(
+          PhoneGatekeeper::UserPhoneRecord.where(user: user, active: true).exists?
+        ).to be true
+      end
+
+      it "rejects non-6-digit code" do
+        result =
+          described_class.verify_code(
+            user: user,
+            phone_number: phone,
+            code: "123"
+          )
+        expect(result[:success]).to be false
+        expect(result[:error]).to be_present
+      end
     end
   end
 
