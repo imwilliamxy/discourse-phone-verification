@@ -1,0 +1,68 @@
+.phone-gatekeeper-section {
+  margin: 1.5em 0;
+  padding: 1.25em;
+  border: 1px solid var(--primary-low);
+  border-radius: 8px;
+  background-color: var(--secondary);
+
+  .phone-gatekeeper-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-bottom: 0.5em;
+
+    h3 {
+      margin: 0;
+      font-size: var(--font-up-1);
+    }
+  }
+
+  .phone-gatekeeper-description {
+    color: var(--primary-medium);
+    margin-bottom: 1em;
+    font-size: var(--font-down-1);
+  }
+
+  .phone-gatekeeper-verified {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75em;
+
+    .badge-verified {
+      color: var(--success);
+      font-weight: bold;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4em;
+    }
+
+    .qualification-info {
+      font-size: var(--font-down-1);
+      color: var(--primary-medium);
+      display: flex;
+      align-items: center;
+      gap: 0.4em;
+
+      &.qualified {
+        color: var(--success);
+      }
+    }
+  }
+
+  .phone-gatekeeper-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+
+    .input-group {
+      display: flex;
+      gap: 0.5em;
+      align-items: center;
+
+      input[type="text"] {
+        max-width: 260px;
+        margin: 0;
+      }
+    }
+  }
+}

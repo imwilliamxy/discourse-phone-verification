@@ -1,0 +1,38 @@
+# Operating System & IDE Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# Node & Package Managers
+/node_modules/
+/vendor/bundle/
+yarn-error.log*
+pnpm-debug.log*
+
+# Logs & Temporary Files
+*.log
+/tmp/
+/log/
+/coverage/
+
+# Lint & Build Artifacts
+.eslintcache
+.stylelintcache
+/auto_generated/
+/dist/
+*.tsbuildinfo
+
+# Internal Design & Planning Docs (keep README.md & CHANGELOG.md tracked)
+DESIGN.md
+PLAN.md
+TODO.md
+NOTES.md
+scratch/

@@ -1,0 +1,43 @@
+plugins:
+  phone_gatekeeper_enabled:
+    default: false
+    client: true
+    type: bool
+  phone_gatekeeper_min_trust_level:
+    default: 1
+    client: true
+    type: enum
+    choices:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+  phone_gatekeeper_group_name:
+    default: "phone_verified"
+    type: string
+  phone_gatekeeper_sms_provider:
+    default: "aws_sns"
+    type: enum
+    choices:
+      - aws_sns
+  phone_gatekeeper_aws_region:
+    default: "us-east-1"
+    type: string
+  phone_gatekeeper_aws_access_key_id:
+    default: ""
+    type: string
+    secret: true
+  phone_gatekeeper_aws_secret_access_key:
+    default: ""
+    type: string
+    secret: true
+  phone_gatekeeper_sms_sender_id:
+    default: ""
+    type: string
+  phone_gatekeeper_sms_daily_limit_per_user:
+    default: 5
+    type: integer
+  phone_gatekeeper_verification_code_expiry_minutes:
+    default: 10
+    type: integer

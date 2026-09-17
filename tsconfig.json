@@ -1,0 +1,16 @@
+{
+  "extends": "discourse/tsconfig-plugin",
+  "include": [
+    "admin/assets/javascripts/**/*",
+    "assets/javascripts/**/*",
+    "test/javascripts/**/*"
+  ],
+  "compilerOptions": {
+    "paths": {
+      "discourse/plugins/uscardforum-phone-gatekeeper/*": ["./assets/javascripts/*"],
+      "discourse/plugins/uscardforum-phone-gatekeeper/admin/*": [
+        "./admin/assets/javascripts/admin/*"
+      ]
+    }
+  }
+}
