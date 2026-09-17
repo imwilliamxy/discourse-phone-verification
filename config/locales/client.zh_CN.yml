@@ -25,7 +25,7 @@ zh_CN:
       success_unbound: "手机号已成功解除绑定。"
     admin:
       phone_gatekeeper:
-        title: "手机号门禁信息"
+        title: "手机号验证信息"
         phone_number: "绑定手机号"
         verified_at: "验证时间"
         status: "验证状态"

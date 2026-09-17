@@ -50,7 +50,7 @@ zh_CN:
     phone_gatekeeper_twilio_messaging_service_sid: "可选的 Twilio Messaging Service SID (MG...)。"
     phone_gatekeeper_sms_daily_limit_per_user: "单用户每日最大可请求短信验证码条数。"
     phone_gatekeeper_verification_code_expiry_minutes: "短信验证码有效期（分钟）。"
-    phone_gatekeeper_debug_mode: "启用调试模式。开启后，用户输入任意 6 位数字验证码均可通过验证（不与真实短信验证码比对，用于开发和测试环境）。生产环境请务必关闭此选项！"
+    phone_gatekeeper_debug_mode: "启用调试模式。开启后，将跳过真实短信发送（不调用短信网关 API 且不限制单日发送次数），用户输入任意 6 位数字验证码均可通过验证（用于开发和测试环境）。生产环境请务必关闭此选项！"
   dashboard:
     problem:
       phone_gatekeeper_missing_dynamic_groups: "手机号门禁插件已启用，但尚未安装推荐的前置插件 <a href='https://github.com/communiteq/discourse-dynamic-groups' target='_blank'>discourse-dynamic-groups</a>。如需使用更灵活的动态用户组及复合板块门禁规则，请在 app.yml 中添加该插件。"

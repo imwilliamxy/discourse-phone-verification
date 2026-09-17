@@ -39,6 +39,39 @@ RSpec.describe PhoneGatekeeper::VerificationService do
       result = described_class.send_code(user: user, phone_number: "12345")
       expect(result[:success]).to be false
     end
+
+    context "when daily limit is reached" do
+      let(:today) { Time.zone.now.strftime("%Y%m%d") }
+      let(:daily_key) { "phone_gatekeeper:daily:#{user.id}:#{today}" }
+
+      before do
+        Discourse.redis.set(daily_key, 3)
+      end
+
+      it "blocks sending in production mode" do
+        SiteSetting.phone_gatekeeper_debug_mode = false
+        result = described_class.send_code(user: user, phone_number: phone)
+        expect(result[:success]).to be false
+        expect(result[:error]).to eq(I18n.t("phone_gatekeeper.errors.daily_limit_exceeded"))
+      end
+
+      it "allows sending when debug mode is enabled" do
+        SiteSetting.phone_gatekeeper_debug_mode = true
+        result = described_class.send_code(user: user, phone_number: phone)
+        expect(result[:success]).to be true
+      end
+    end
+
+    context "when debug mode is enabled" do
+      before { SiteSetting.phone_gatekeeper_debug_mode = true }
+
+      it "does not call SMS provider and succeeds" do
+        expect(PhoneGatekeeper::SmsProvider::Factory).not_to receive(:get)
+        result = described_class.send_code(user: user, phone_number: phone)
+        expect(result[:success]).to be true
+        expect(result[:cooldown_seconds]).to eq(60)
+      end
+    end
   end
 
   describe "#verify_code" do

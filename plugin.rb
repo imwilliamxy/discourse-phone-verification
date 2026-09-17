@@ -43,6 +43,16 @@ after_initialize do
     PhoneGatekeeper::GroupSyncService.sync_user(user) if user
   end
 
+  on(:site_setting_changed) do |name, _old_value, _new_value|
+    if %i[
+         phone_gatekeeper_enabled
+         phone_gatekeeper_min_trust_level
+         phone_gatekeeper_group_name
+       ].include?(name.to_sym)
+      PhoneGatekeeper::GroupSyncService.sync_all
+    end
+  end
+
   # Staff serializer extension to view unmasked phone number
   add_to_serializer(:admin_detailed_user, :phone_gatekeeper_record) do
     record =

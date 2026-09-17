@@ -61,19 +61,21 @@ module PhoneGatekeeper
         )
       end
 
-      # Check daily limits
-      today = Time.zone.now.strftime("%Y%m%d")
-      user_daily_key = "phone_gatekeeper:daily:#{@user.id}:#{today}"
-      current_user_count = Discourse.redis.get(user_daily_key).to_i
-      limit = SiteSetting.phone_gatekeeper_sms_daily_limit_per_user
+      # Check daily limits (bypassed in debug mode)
+      unless SiteSetting.phone_gatekeeper_debug_mode
+        today = Time.zone.now.strftime("%Y%m%d")
+        user_daily_key = "phone_gatekeeper:daily:#{@user.id}:#{today}"
+        current_user_count = Discourse.redis.get(user_daily_key).to_i
+        limit = SiteSetting.phone_gatekeeper_sms_daily_limit_per_user
 
-      if current_user_count >= limit
-        return(
-          {
-            success: false,
-            error: I18n.t("phone_gatekeeper.errors.daily_limit_exceeded")
-          }
-        )
+        if current_user_count >= limit
+          return(
+            {
+              success: false,
+              error: I18n.t("phone_gatekeeper.errors.daily_limit_exceeded")
+            }
+          )
+        end
       end
 
       # Generate 6-digit OTP
@@ -81,21 +83,27 @@ module PhoneGatekeeper
       expiry_minutes =
         SiteSetting.phone_gatekeeper_verification_code_expiry_minutes
 
-      # Send SMS
-      site_title = SiteSetting.title
-      sms_text =
-        I18n.t(
-          "phone_gatekeeper.sms_message",
-          site_title: site_title,
-          code: code,
-          expiry: expiry_minutes
+      # Send SMS (skipped in debug mode)
+      if SiteSetting.phone_gatekeeper_debug_mode
+        Rails.logger.info(
+          "[PhoneGatekeeper DEBUG] Generated verification code #{code} for #{formatted_phone} (SMS sending skipped)"
         )
+      else
+        site_title = SiteSetting.title
+        sms_text =
+          I18n.t(
+            "phone_gatekeeper.sms_message",
+            site_title: site_title,
+            code: code,
+            expiry: expiry_minutes
+          )
 
-      provider = SmsProvider::Factory.get
-      result = provider.send_sms(to: formatted_phone, message: sms_text)
+        provider = SmsProvider::Factory.get
+        result = provider.send_sms(to: formatted_phone, message: sms_text)
 
-      unless result.success?
-        return { success: false, error: result.error_message }
+        unless result.success?
+          return { success: false, error: result.error_message }
+        end
       end
 
       # Save to Redis
@@ -105,8 +113,12 @@ module PhoneGatekeeper
 
       # Set cooldown & increment daily count
       Discourse.redis.setex(cooldown_key, COOLDOWN_SECONDS, "1")
-      Discourse.redis.incr(user_daily_key)
-      Discourse.redis.expire(user_daily_key, 86_400)
+      unless SiteSetting.phone_gatekeeper_debug_mode
+        today = Time.zone.now.strftime("%Y%m%d")
+        user_daily_key = "phone_gatekeeper:daily:#{@user.id}:#{today}"
+        Discourse.redis.incr(user_daily_key)
+        Discourse.redis.expire(user_daily_key, 86_400)
+      end
 
       { success: true, cooldown_seconds: COOLDOWN_SECONDS }
     end

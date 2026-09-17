@@ -50,7 +50,7 @@ en:
     phone_gatekeeper_twilio_messaging_service_sid: "Optional Twilio Messaging Service SID (MG...)."
     phone_gatekeeper_sms_daily_limit_per_user: "Maximum SMS verification codes a user can request per day."
     phone_gatekeeper_verification_code_expiry_minutes: "Verification code expiration time in minutes."
-    phone_gatekeeper_debug_mode: "Enable debug mode. When enabled, any 6-digit verification code will be accepted without matching against the real SMS code (for development/testing only). Keep disabled in production!"
+    phone_gatekeeper_debug_mode: "Enable debug mode. When enabled, actual SMS dispatch is bypassed (no SMS gateway API calls and no daily limits), and any 6-digit verification code will be accepted (for development/testing only). Keep disabled in production!"
   dashboard:
     problem:
       phone_gatekeeper_missing_dynamic_groups: "The Phone Gatekeeper plugin is enabled, but the recommended companion plugin <a href='https://github.com/communiteq/discourse-dynamic-groups' target='_blank'>discourse-dynamic-groups</a> is not installed. Dynamic group calculation and advanced category gatekeeping rules will not be active."

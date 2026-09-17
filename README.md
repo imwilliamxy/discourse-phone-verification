@@ -72,6 +72,7 @@ hooks:
 | `phone_gatekeeper_twilio_messaging_service_sid` | `""` | 可选 Twilio Messaging Service SID（`MG...`） |
 | `phone_gatekeeper_sms_daily_limit_per_user` | `5` | 单用户每日允许发送验证码最大次数 |
 | `phone_gatekeeper_verification_code_expiry_minutes` | `10` | 验证码有效时长（分钟） |
+| `phone_gatekeeper_debug_mode` | `false` | 调试模式开关（开启后跳过真实短信发送与单日发送限制，任意 6 位数字均可通过） |
 
 ---
 
