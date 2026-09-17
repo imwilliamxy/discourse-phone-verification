@@ -25,7 +25,20 @@ after_initialize do
   # Event hooks for Trust Level & account status changes
   on(:user_promoted) do |payload|
     user = payload[:user] || User.find_by(id: payload[:user_id])
-    PhoneGatekeeper::GroupSyncService.sync_user(user) if user
+    if user
+      PhoneGatekeeper::GroupSyncService.sync_user(user)
+
+      old_tl = payload[:old_trust_level]
+      new_tl = payload[:new_trust_level]
+      if old_tl && new_tl && new_tl < old_tl
+        Group.user_trust_level_change!(user.id, new_tl)
+        ((new_tl + 1)..old_tl).each do |tl|
+          if (group = Group.find_by(name: "trust_level_#{tl}"))
+            DiscourseEvent.trigger(:user_removed_from_group, user, group)
+          end
+        end
+      end
+    end
   end
 
   on(:user_demoted) do |payload|
