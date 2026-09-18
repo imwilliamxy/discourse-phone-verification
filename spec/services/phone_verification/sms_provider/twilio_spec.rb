@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe PhoneGatekeeper::SmsProvider::Twilio do
+RSpec.describe PhoneVerification::SmsProvider::Twilio do
   subject(:provider) { described_class.new }
 
   let(:account_sid) { "AC_test_dummy_account_sid_99999" }
@@ -15,15 +15,15 @@ RSpec.describe PhoneGatekeeper::SmsProvider::Twilio do
   end
 
   before do
-    SiteSetting.phone_gatekeeper_enabled = true
-    SiteSetting.phone_gatekeeper_twilio_account_sid = account_sid
-    SiteSetting.phone_gatekeeper_twilio_auth_token = auth_token
-    SiteSetting.phone_gatekeeper_twilio_from_phone_number = from_phone
-    SiteSetting.phone_gatekeeper_twilio_messaging_service_sid = ""
+    SiteSetting.phone_verification_enabled = true
+    SiteSetting.phone_verification_twilio_account_sid = account_sid
+    SiteSetting.phone_verification_twilio_auth_token = auth_token
+    SiteSetting.phone_verification_twilio_from_phone_number = from_phone
+    SiteSetting.phone_verification_twilio_messaging_service_sid = ""
   end
 
   it "returns error when Account SID or Auth Token is missing" do
-    SiteSetting.phone_gatekeeper_twilio_account_sid = ""
+    SiteSetting.phone_verification_twilio_account_sid = ""
     result = provider.send_sms(to: to_phone, message: message_text)
     expect(result.success?).to be false
     expect(result.error_message).to include(
@@ -32,8 +32,8 @@ RSpec.describe PhoneGatekeeper::SmsProvider::Twilio do
   end
 
   it "returns error when both From phone and Messaging Service SID are missing" do
-    SiteSetting.phone_gatekeeper_twilio_from_phone_number = ""
-    SiteSetting.phone_gatekeeper_twilio_messaging_service_sid = ""
+    SiteSetting.phone_verification_twilio_from_phone_number = ""
+    SiteSetting.phone_verification_twilio_messaging_service_sid = ""
     result = provider.send_sms(to: to_phone, message: message_text)
     expect(result.success?).to be false
     expect(result.error_message).to include(
@@ -63,8 +63,8 @@ RSpec.describe PhoneGatekeeper::SmsProvider::Twilio do
   end
 
   it "successfully sends SMS with MessagingServiceSid" do
-    SiteSetting.phone_gatekeeper_twilio_from_phone_number = ""
-    SiteSetting.phone_gatekeeper_twilio_messaging_service_sid = "MG1234567890"
+    SiteSetting.phone_verification_twilio_from_phone_number = ""
+    SiteSetting.phone_verification_twilio_messaging_service_sid = "MG1234567890"
 
     stub_request(:post, api_url).with(
       basic_auth: [account_sid, auth_token],
@@ -115,8 +115,10 @@ RSpec.describe PhoneGatekeeper::SmsProvider::Twilio do
 
   describe "Factory" do
     it "returns Twilio provider instance when configured" do
-      SiteSetting.phone_gatekeeper_sms_provider = "twilio"
-      expect(PhoneGatekeeper::SmsProvider::Factory.get).to be_a(described_class)
+      SiteSetting.phone_verification_sms_provider = "twilio"
+      expect(PhoneVerification::SmsProvider::Factory.get).to be_a(
+        described_class
+      )
     end
   end
 end

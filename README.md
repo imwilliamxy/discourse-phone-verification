@@ -1,6 +1,6 @@
-# Discourse Phone Gatekeeper Plugin (`uscardforum-phone-gatekeeper`)
+# Discourse Phone Verification Plugin (`uscardforum-phone-verification`)
 
-Discourse 手机号门禁插件，支持美国（+1）手机号短信验证码绑定、隐私脱敏、信任等级（Trust Level）联动以及板块准入自动用户组同步。
+Discourse 手机号验证插件，支持美国（+1）手机号短信验证码绑定、隐私脱敏、信任等级（Trust Level）联动以及板块准入自动用户组同步。
 
 ---
 
@@ -19,7 +19,7 @@ Discourse 手机号门禁插件，支持美国（+1）手机号短信验证码�
    - **动态规则（推荐）**：与 [discourse-dynamic-groups](https://github.com/communiteq/discourse-dynamic-groups) 深度配合，支持通过灵活的 SQL 规则构建诸如「Trust Level X 且已验证手机号」的复合门禁组。
    - **原生板块权限**：管理员通过 Discourse 原生 `Category -> Security` 权限为门禁组分配 `See / Reply / Create` 访问控制。
 4. **可扩展 SMS Provider 架构**：
-   - 抽象通用短信适配器接口，首发实现 **AWS SNS**，并支持配置 AWS IAM Role / Access Key。
+   - 抽象通用短信适配器接口，已实现 **AWS SNS** 与 **Twilio**，并支持灵活扩展。
 
 ---
 
@@ -42,7 +42,7 @@ hooks:
           # 1. 动态用户组插件（推荐先引入）
           - git clone https://github.com/communiteq/discourse-dynamic-groups.git
           # 2. 手机号验证门禁插件
-          - git clone https://github.com/uscardforum/uscardforum-phone-gatekeeper.git
+          - git clone https://github.com/uscardforum/uscardforum-phone-verification.git
 ```
 
 添加后，在 `/var/discourse` 目录下重新构建容器：
@@ -54,25 +54,25 @@ hooks:
 
 ## 3. 插件配置与站点设置 (Site Settings)
 
-进入 Discourse 管理员后台，搜索 `phone_gatekeeper` 配置项：
+进入 Discourse 管理员后台，搜索 `phone_verification` 配置项：
 
 | 设置项 | 默认值 | 说明 |
 | :--- | :--- | :--- |
-| `phone_gatekeeper_enabled` | `false` | 启用/禁用手机号门禁插件 |
-| `phone_gatekeeper_min_trust_level` | `1` | 内置门禁所需的最低信任等级 (0 ~ 4) |
-| `phone_gatekeeper_group_name` | `phone_verified` | 内置同步的目标用户组名称 |
-| `phone_gatekeeper_sms_provider` | `aws_sns` | 短信网关服务商驱动（`aws_sns` 或 `twilio`） |
-| `phone_gatekeeper_aws_region` | `us-east-1` | AWS SNS 服务所在 Region |
-| `phone_gatekeeper_aws_access_key_id` | `""` | AWS Access Key ID（留空使用 IAM 角色） |
-| `phone_gatekeeper_aws_secret_access_key` | `""` | AWS Secret Access Key |
-| `phone_gatekeeper_sms_sender_id` | `""` | 可选 AWS 短信 Sender ID（支持的国家/地区有效） |
-| `phone_gatekeeper_twilio_account_sid` | `""` | Twilio Account SID |
-| `phone_gatekeeper_twilio_auth_token` | `""` | Twilio Auth Token |
-| `phone_gatekeeper_twilio_from_phone_number` | `""` | Twilio 发送方电话号码（E.164 格式，如 `+14155552671`） |
-| `phone_gatekeeper_twilio_messaging_service_sid` | `""` | 可选 Twilio Messaging Service SID（`MG...`） |
-| `phone_gatekeeper_sms_daily_limit_per_user` | `5` | 单用户每日允许发送验证码最大次数 |
-| `phone_gatekeeper_verification_code_expiry_minutes` | `10` | 验证码有效时长（分钟） |
-| `phone_gatekeeper_debug_mode` | `false` | 调试模式开关（开启后跳过真实短信发送与单日发送限制，任意 6 位数字均可通过） |
+| `phone_verification_enabled` | `false` | 启用/禁用手机号验证插件 |
+| `phone_verification_min_trust_level` | `1` | 内置门禁所需的最低信任等级 (0 ~ 4) |
+| `phone_verification_group_name` | `phone_verified` | 内置同步的目标用户组名称 |
+| `phone_verification_sms_provider` | `aws_sns` | 短信网关服务商驱动（`aws_sns` 或 `twilio`） |
+| `phone_verification_aws_region` | `us-east-1` | AWS SNS 服务所在 Region |
+| `phone_verification_aws_access_key_id` | `""` | AWS Access Key ID（留空使用 IAM 角色） |
+| `phone_verification_aws_secret_access_key` | `""` | AWS Secret Access Key |
+| `phone_verification_sms_sender_id` | `""` | 可选 AWS 短信 Sender ID（支持的国家/地区有效） |
+| `phone_verification_twilio_account_sid` | `""` | Twilio Account SID |
+| `phone_verification_twilio_auth_token` | `""` | Twilio Auth Token |
+| `phone_verification_twilio_from_phone_number` | `""` | Twilio 发送方电话号码（E.164 格式，如 `+14155552671`） |
+| `phone_verification_twilio_messaging_service_sid` | `""` | 可选 Twilio Messaging Service SID（`MG...`） |
+| `phone_verification_sms_daily_limit_per_user` | `5` | 单用户每日允许发送验证码最大次数 |
+| `phone_verification_verification_code_expiry_minutes` | `10` | 验证码有效时长（分钟） |
+| `phone_verification_debug_mode` | `false` | 调试模式开关（开启后跳过真实短信发送与单日发送限制，任意 6 位数字均可通过） |
 
 ---
 
@@ -119,15 +119,78 @@ WHERE u.trust_level >= 3
 
 ---
 
-## 5. 开发与测试
+## 5. 内置用户组自动创建与生命周期管理 (Automatic Group Lifecycle)
 
-进入 Discourse 开发容器执行 RSpec 测试：
+插件内置了目标用户组的自动保障与同步机制：
+
+### 5.1 自动创建机制
+- **触发时机**：当在管理后台启用插件（`phone_verification_enabled = true`）或修改门禁相关设置（如最低信任等级、组名称）并保存时，Discourse 会触发 `site_setting_changed` 事件。
+- **自动初始化**：插件会自动检查数据库中是否存在名为 `phone_verification_group_name`（默认 `phone_verified`）的用户组；若不存在（例如在全新环境或重置数据库后），插件会自动调用 `Group.create!` 创建该用户组。
+
+### 5.2 默认安全属性
+- **仅员工可见 (`visibility_level: staff`)**：普通用户无法在用户组列表查看谁验证了手机号，保护用户隐私。
+- **禁止自行申请 (`public_admission: false`)**：不允许用户手动申请加入，完全由插件自动化业务逻辑托管。
+- **非主用户组 (`primary_group: false`)**：不覆盖用户的原生主用户组头衔或徽章展示。
+
+### 5.3 自动化成员同步
+- **自动加入**：当用户完成手机号短信验证，且当前信任等级达到设定门槛（`Trust Level >= phone_verification_min_trust_level`）且账号未被封禁时，插件自动将其加入该组。
+- **自动移出**：当用户**主动解绑手机号**、**账号被封禁 (Suspended)** 或**信任等级下降**至门槛以下时，插件会自动将其从该组移除。
+
+---
+
+## 6. 本地开发、环境重置与测试 (Development, Reset & Testing)
+
+在 Discourse 官方 Docker 开发环境（`discourse/discourse_dev`）下，插件代码通过挂载 `/src/plugins` 目录实时生效。
+
+### 6.1 清理历史数据与全新初始化启动（Clean Slate）
+若需要彻底清理旧数据库和缓存数据并重新启动：
+
 ```bash
-docker exec -u discourse discourse_dev bash -c "cd /src && LOAD_PLUGINS=1 bundle exec rspec plugins/uscardforum-phone-gatekeeper/spec"
+cd /path/to/discourse
+
+# 1. 停止并删除现有的开发容器
+./bin/docker/shutdown_dev
+
+# 2. 清空 PostgreSQL 本地持久化数据
+rm -rf data/postgres/*
+
+# 3. 重新启动容器并执行初始化（自动创建数据库、主工程迁移并创建管理员）
+./bin/docker/boot_dev --init
+```
+
+> 💡 **快速重置数据库（保留容器）**：
+> 若无需删除容器，可直接执行 `./bin/docker/reset_db`。
+
+### 6.2 插件加载与迁移
+1. **自动加载**：只要插件目录位于 `plugins/uscardforum-phone-verification`，容器启动时便会自动加载。
+2. **执行数据库迁移**：
+   ```bash
+   ./bin/docker/rake db:migrate
+   ```
+3. **创建/重设管理员账号**：
+   ```bash
+   ./bin/docker/rake admin:create
+   ```
+
+### 6.3 启动开发服务器
+```bash
+./bin/docker/dev
+```
+- 访问：`http://localhost:3000`
+- 登录管理员后前往 `Admin -> Settings -> Plugins` 启用 `phone_verification_enabled`。
+
+### 6.4 运行测试与代码检查
+```bash
+# 运行插件全部 RSpec 测试套件
+LOAD_PLUGINS=1 ./bin/docker/rspec plugins/uscardforum-phone-verification/spec
+
+# 运行前端 Lint 检查
+./bin/docker/exec bin/lint plugins/uscardforum-phone-verification
 ```
 
 ---
 
-## 6. 详细技术规范
+## 7. 详细技术规范
 完整的架构设计、数据库表结构、API 契约及实施规范请参阅：
 👉 [DESIGN.md](./DESIGN.md)
+

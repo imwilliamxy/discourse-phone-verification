@@ -1,9 +1,9 @@
 plugins:
-  phone_gatekeeper_enabled:
+  phone_verification_enabled:
     default: false
     client: true
     type: bool
-  phone_gatekeeper_min_trust_level:
+  phone_verification_min_trust_level:
     default: 1
     client: true
     type: enum
@@ -13,98 +13,98 @@ plugins:
       - 2
       - 3
       - 4
-  phone_gatekeeper_group_name:
+  phone_verification_group_name:
     default: "phone_verified"
     type: string
-  phone_gatekeeper_sms_provider:
+  phone_verification_sms_provider:
     default: "aws_sns"
     type: enum
     choices:
       - aws_sns
       - twilio
-  phone_gatekeeper_aws_region:
+  phone_verification_aws_region:
     default: "us-east-1"
     type: string
     depends_on:
-      - phone_gatekeeper_sms_provider
+      - phone_verification_sms_provider
     depends_on_values:
-      phone_gatekeeper_sms_provider:
+      phone_verification_sms_provider:
         - aws_sns
     depends_behavior: "hidden"
-  phone_gatekeeper_aws_access_key_id:
+  phone_verification_aws_access_key_id:
     default: ""
     type: string
     secret: true
     depends_on:
-      - phone_gatekeeper_sms_provider
+      - phone_verification_sms_provider
     depends_on_values:
-      phone_gatekeeper_sms_provider:
+      phone_verification_sms_provider:
         - aws_sns
     depends_behavior: "hidden"
-  phone_gatekeeper_aws_secret_access_key:
+  phone_verification_aws_secret_access_key:
     default: ""
     type: string
     secret: true
     depends_on:
-      - phone_gatekeeper_sms_provider
+      - phone_verification_sms_provider
     depends_on_values:
-      phone_gatekeeper_sms_provider:
+      phone_verification_sms_provider:
         - aws_sns
     depends_behavior: "hidden"
-  phone_gatekeeper_sms_sender_id:
+  phone_verification_sms_sender_id:
     default: ""
     type: string
     depends_on:
-      - phone_gatekeeper_sms_provider
+      - phone_verification_sms_provider
     depends_on_values:
-      phone_gatekeeper_sms_provider:
+      phone_verification_sms_provider:
         - aws_sns
     depends_behavior: "hidden"
-  phone_gatekeeper_twilio_account_sid:
+  phone_verification_twilio_account_sid:
     default: ""
     type: string
     secret: true
     depends_on:
-      - phone_gatekeeper_sms_provider
+      - phone_verification_sms_provider
     depends_on_values:
-      phone_gatekeeper_sms_provider:
+      phone_verification_sms_provider:
         - twilio
     depends_behavior: "hidden"
-  phone_gatekeeper_twilio_auth_token:
+  phone_verification_twilio_auth_token:
     default: ""
     type: string
     secret: true
     depends_on:
-      - phone_gatekeeper_sms_provider
+      - phone_verification_sms_provider
     depends_on_values:
-      phone_gatekeeper_sms_provider:
+      phone_verification_sms_provider:
         - twilio
     depends_behavior: "hidden"
-  phone_gatekeeper_twilio_from_phone_number:
+  phone_verification_twilio_from_phone_number:
     default: ""
     type: string
     depends_on:
-      - phone_gatekeeper_sms_provider
+      - phone_verification_sms_provider
     depends_on_values:
-      phone_gatekeeper_sms_provider:
+      phone_verification_sms_provider:
         - twilio
     depends_behavior: "hidden"
-  phone_gatekeeper_twilio_messaging_service_sid:
+  phone_verification_twilio_messaging_service_sid:
     default: ""
     type: string
     depends_on:
-      - phone_gatekeeper_sms_provider
+      - phone_verification_sms_provider
     depends_on_values:
-      phone_gatekeeper_sms_provider:
+      phone_verification_sms_provider:
         - twilio
     depends_behavior: "hidden"
-  phone_gatekeeper_sms_daily_limit_per_user:
+  phone_verification_sms_daily_limit_per_user:
     default: 5
     type: integer
-  phone_gatekeeper_verification_code_expiry_minutes:
+  phone_verification_verification_code_expiry_minutes:
     default: 10
     type: integer
-  phone_gatekeeper_debug_mode:
+  phone_verification_debug_mode:
     default: false
     client: false
     type: bool

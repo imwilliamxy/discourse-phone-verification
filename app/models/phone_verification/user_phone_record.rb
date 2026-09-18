@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module PhoneGatekeeper
+module PhoneVerification
   class UserPhoneRecord < ::ActiveRecord::Base
     self.table_name = "user_phone_records"
 

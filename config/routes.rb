@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-PhoneGatekeeper::Engine.routes.draw do
-  get "status" => "phone_gatekeeper#status"
-  post "send-code" => "phone_gatekeeper#send_code"
-  post "verify-code" => "phone_gatekeeper#verify_code"
-  post "unbind" => "phone_gatekeeper#unbind"
+PhoneVerification::Engine.routes.draw do
+  get "status" => "phone_verification#status"
+  post "send-code" => "phone_verification#send_code"
+  post "verify-code" => "phone_verification#verify_code"
+  post "unbind" => "phone_verification#unbind"
 end
 
 Discourse::Application.routes.draw do
-  mount ::PhoneGatekeeper::Engine, at: "/phone-gatekeeper"
+  mount ::PhoneVerification::Engine, at: "/phone-verification"
 end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module PhoneGatekeeper
+module PhoneVerification
   module SmsProvider
     class Result
       attr_reader :success, :error_message, :message_id

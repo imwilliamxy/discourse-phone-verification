@@ -7,8 +7,8 @@
   ],
   "compilerOptions": {
     "paths": {
-      "discourse/plugins/uscardforum-phone-gatekeeper/*": ["./assets/javascripts/*"],
-      "discourse/plugins/uscardforum-phone-gatekeeper/admin/*": [
+      "discourse/plugins/uscardforum-phone-verification/*": ["./assets/javascripts/*"],
+      "discourse/plugins/uscardforum-phone-verification/admin/*": [
         "./admin/assets/javascripts/admin/*"
       ]
     }

@@ -2,18 +2,18 @@
 
 require "rails_helper"
 
-RSpec.describe PhoneGatekeeper::GroupSyncService do
+RSpec.describe PhoneVerification::GroupSyncService do
   fab!(:user) { Fabricate(:user, trust_level: TrustLevel[1]) }
   let(:group_name) { "phone_verified" }
 
   before do
-    SiteSetting.phone_gatekeeper_enabled = true
-    SiteSetting.phone_gatekeeper_min_trust_level = 1
-    SiteSetting.phone_gatekeeper_group_name = group_name
+    SiteSetting.phone_verification_enabled = true
+    SiteSetting.phone_verification_min_trust_level = 1
+    SiteSetting.phone_verification_group_name = group_name
   end
 
   it "adds user to target group when phone is verified and trust level matches" do
-    PhoneGatekeeper::UserPhoneRecord.create!(
+    PhoneVerification::UserPhoneRecord.create!(
       user: user,
       phone_number: "+14155552671",
       verified_at: Time.zone.now,
@@ -27,7 +27,7 @@ RSpec.describe PhoneGatekeeper::GroupSyncService do
 
   it "removes user from group if user trust level is below requirement" do
     user.update!(trust_level: TrustLevel[0])
-    PhoneGatekeeper::UserPhoneRecord.create!(
+    PhoneVerification::UserPhoneRecord.create!(
       user: user,
       phone_number: "+14155552671",
       verified_at: Time.zone.now,
@@ -41,7 +41,7 @@ RSpec.describe PhoneGatekeeper::GroupSyncService do
 
   it "removes user from group if phone is deactivated/unbound" do
     record =
-      PhoneGatekeeper::UserPhoneRecord.create!(
+      PhoneVerification::UserPhoneRecord.create!(
         user: user,
         phone_number: "+14155552671",
         verified_at: Time.zone.now,
@@ -62,7 +62,7 @@ RSpec.describe PhoneGatekeeper::GroupSyncService do
 
     it "synchronizes all eligible and ineligible users across the system" do
       # user: TL 1, verified -> eligible
-      PhoneGatekeeper::UserPhoneRecord.create!(
+      PhoneVerification::UserPhoneRecord.create!(
         user: user,
         phone_number: "+14155552671",
         verified_at: Time.zone.now,
@@ -70,7 +70,7 @@ RSpec.describe PhoneGatekeeper::GroupSyncService do
       )
 
       # user2: TL 2, verified -> eligible
-      PhoneGatekeeper::UserPhoneRecord.create!(
+      PhoneVerification::UserPhoneRecord.create!(
         user: user2,
         phone_number: "+14155552672",
         verified_at: Time.zone.now,
@@ -78,7 +78,7 @@ RSpec.describe PhoneGatekeeper::GroupSyncService do
       )
 
       # user3: TL 0, verified -> ineligible
-      PhoneGatekeeper::UserPhoneRecord.create!(
+      PhoneVerification::UserPhoneRecord.create!(
         user: user3,
         phone_number: "+14155552673",
         verified_at: Time.zone.now,
@@ -93,7 +93,7 @@ RSpec.describe PhoneGatekeeper::GroupSyncService do
       expect(group.users).not_to include(user3)
 
       # When min trust level is updated to 0, sync_all includes user3
-      SiteSetting.phone_gatekeeper_min_trust_level = 0
+      SiteSetting.phone_verification_min_trust_level = 0
       described_class.sync_all
       expect(group.users.reload).to include(user3)
     end

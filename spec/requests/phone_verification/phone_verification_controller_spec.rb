@@ -2,29 +2,29 @@
 
 require "rails_helper"
 
-RSpec.describe PhoneGatekeeper::PhoneGatekeeperController, type: :request do
+RSpec.describe PhoneVerification::PhoneVerificationController, type: :request do
   fab!(:user) { Fabricate(:user, trust_level: TrustLevel[1]) }
   let(:phone) { "+14155552671" }
 
   before do
-    SiteSetting.phone_gatekeeper_enabled = true
+    SiteSetting.phone_verification_enabled = true
     sign_in(user)
 
-    mock_provider = instance_double(PhoneGatekeeper::SmsProvider::Base)
+    mock_provider = instance_double(PhoneVerification::SmsProvider::Base)
     allow(mock_provider).to receive(:send_sms).and_return(
-      PhoneGatekeeper::SmsProvider::Result.new(
+      PhoneVerification::SmsProvider::Result.new(
         success: true,
         message_id: "req_msg_id"
       )
     )
-    allow(PhoneGatekeeper::SmsProvider::Factory).to receive(:get).and_return(
+    allow(PhoneVerification::SmsProvider::Factory).to receive(:get).and_return(
       mock_provider
     )
   end
 
-  describe "GET /phone-gatekeeper/status" do
+  describe "GET /phone-verification/status" do
     it "returns unverified status for new user" do
-      get "/phone-gatekeeper/status.json"
+      get "/phone-verification/status.json"
       expect(response.status).to eq(200)
       json = response.parsed_body
       expect(json["phone_verified"]).to be false
@@ -32,26 +32,26 @@ RSpec.describe PhoneGatekeeper::PhoneGatekeeperController, type: :request do
     end
   end
 
-  describe "POST /phone-gatekeeper/send-code" do
+  describe "POST /phone-verification/send-code" do
     it "sends code and returns cooldown" do
-      post "/phone-gatekeeper/send-code.json", params: { phone_number: phone }
+      post "/phone-verification/send-code.json", params: { phone_number: phone }
       expect(response.status).to eq(200)
       expect(response.parsed_body["success"]).to be true
     end
   end
 
-  describe "POST /phone-gatekeeper/verify-code" do
+  describe "POST /phone-verification/verify-code" do
     it "verifies and binds phone" do
-      PhoneGatekeeper::VerificationService.send_code(
+      PhoneVerification::VerificationService.send_code(
         user: user,
         phone_number: phone
       )
       code =
-        JSON.parse(Discourse.redis.get("phone_gatekeeper:code:#{user.id}"))[
+        JSON.parse(Discourse.redis.get("phone_verification:code:#{user.id}"))[
           "code"
         ]
 
-      post "/phone-gatekeeper/verify-code.json",
+      post "/phone-verification/verify-code.json",
            params: {
              phone_number: phone,
              code: code
@@ -63,16 +63,16 @@ RSpec.describe PhoneGatekeeper::PhoneGatekeeperController, type: :request do
     end
   end
 
-  describe "POST /phone-gatekeeper/unbind" do
+  describe "POST /phone-verification/unbind" do
     it "unbinds phone successfully" do
-      PhoneGatekeeper::UserPhoneRecord.create!(
+      PhoneVerification::UserPhoneRecord.create!(
         user: user,
         phone_number: phone,
         verified_at: Time.zone.now,
         active: true
       )
 
-      post "/phone-gatekeeper/unbind.json"
+      post "/phone-verification/unbind.json"
       expect(response.status).to eq(200)
       expect(response.parsed_body["success"]).to be true
     end

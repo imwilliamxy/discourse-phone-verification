@@ -3,23 +3,23 @@ import { service } from "@ember/service";
 import dIcon from "discourse/ui-kit/helpers/d-icon";
 import { i18n } from "discourse-i18n";
 
-export default class PhoneGatekeeperDependencyNotice extends Component {
+export default class PhoneVerificationDependencyNotice extends Component {
   @service site;
 
-  get isPhoneGatekeeperEnabledSetting() {
+  get isPhoneVerificationEnabledSetting() {
     return (
-      this.args.outletArgs?.setting?.setting === "phone_gatekeeper_enabled"
+      this.args.outletArgs?.setting?.setting === "phone_verification_enabled"
     );
   }
 
   get isDynamicGroupsInstalled() {
-    return Boolean(this.site.phone_gatekeeper_dynamic_groups_installed);
+    return Boolean(this.site.phone_verification_dynamic_groups_installed);
   }
 
   <template>
-    {{#if this.isPhoneGatekeeperEnabledSetting}}
+    {{#if this.isPhoneVerificationEnabledSetting}}
       <div
-        class="phone-gatekeeper-dependency-callout
+        class="phone-verification-dependency-callout
           {{if this.isDynamicGroupsInstalled 'is-installed' 'is-missing'}}"
       >
         <div class="callout-header">
@@ -28,14 +28,14 @@ export default class PhoneGatekeeperDependencyNotice extends Component {
                 "circle-check"
               }}</span>
             <span class="callout-title">
-              {{i18n "admin.phone_gatekeeper.dynamic_groups.installed_title"}}
+              {{i18n "admin.phone_verification.dynamic_groups.installed_title"}}
             </span>
           {{else}}
             <span class="callout-icon is-missing">{{dIcon
                 "triangle-exclamation"
               }}</span>
             <span class="callout-title">
-              {{i18n "admin.phone_gatekeeper.dynamic_groups.missing_title"}}
+              {{i18n "admin.phone_verification.dynamic_groups.missing_title"}}
             </span>
           {{/if}}
         </div>
@@ -43,10 +43,12 @@ export default class PhoneGatekeeperDependencyNotice extends Component {
         <p class="callout-body">
           {{#if this.isDynamicGroupsInstalled}}
             {{i18n
-              "admin.phone_gatekeeper.dynamic_groups.installed_description"
+              "admin.phone_verification.dynamic_groups.installed_description"
             }}
           {{else}}
-            {{i18n "admin.phone_gatekeeper.dynamic_groups.missing_description"}}
+            {{i18n
+              "admin.phone_verification.dynamic_groups.missing_description"
+            }}
           {{/if}}
         </p>
 
@@ -59,7 +61,7 @@ export default class PhoneGatekeeperDependencyNotice extends Component {
               target="_blank"
             >
               {{dIcon "up-right-from-square"}}
-              {{i18n "admin.phone_gatekeeper.dynamic_groups.learn_more"}}
+              {{i18n "admin.phone_verification.dynamic_groups.learn_more"}}
             </a>
           </div>
         {{/unless}}

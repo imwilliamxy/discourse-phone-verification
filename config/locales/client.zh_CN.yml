@@ -3,9 +3,9 @@ zh_CN:
     admin:
       site_settings:
         categories:
-          phone_gatekeeper: "手机号验证 (Phone Gatekeeper)"
+          phone_verification: "手机号验证 (Phone Verification)"
   js:
-    phone_gatekeeper:
+    phone_verification:
       title: "手机号验证 (+1)"
       description: "完成美国 (+1) 手机号短信验证，即可根据信任等级解锁专属讨论板块。"
       phone_label: "美国手机号码"
@@ -24,7 +24,7 @@ zh_CN:
       success_verified: "手机号绑定成功！"
       success_unbound: "手机号已成功解除绑定。"
     admin:
-      phone_gatekeeper:
+      phone_verification:
         title: "手机号验证信息"
         phone_number: "绑定手机号"
         verified_at: "验证时间"

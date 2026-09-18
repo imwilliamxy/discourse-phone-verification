@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module PhoneGatekeeper
+module PhoneVerification
   class VerificationService
     COOLDOWN_SECONDS = 60
     MAX_FAILED_ATTEMPTS = 5
@@ -27,7 +27,7 @@ module PhoneGatekeeper
         return(
           {
             success: false,
-            error: I18n.t("phone_gatekeeper.errors.invalid_phone_number")
+            error: I18n.t("phone_verification.errors.invalid_phone_number")
           }
         )
       end
@@ -40,13 +40,13 @@ module PhoneGatekeeper
         return(
           {
             success: false,
-            error: I18n.t("phone_gatekeeper.errors.phone_already_used")
+            error: I18n.t("phone_verification.errors.phone_already_used")
           }
         )
       end
 
       # Check cooldown
-      cooldown_key = "phone_gatekeeper:cooldown:#{@user.id}"
+      cooldown_key = "phone_verification:cooldown:#{@user.id}"
       remaining_ttl = Discourse.redis.ttl(cooldown_key)
       if remaining_ttl > 0
         return(
@@ -54,7 +54,7 @@ module PhoneGatekeeper
             success: false,
             error:
               I18n.t(
-                "phone_gatekeeper.errors.cooldown_active",
+                "phone_verification.errors.cooldown_active",
                 seconds: remaining_ttl
               )
           }
@@ -62,17 +62,17 @@ module PhoneGatekeeper
       end
 
       # Check daily limits (bypassed in debug mode)
-      unless SiteSetting.phone_gatekeeper_debug_mode
+      unless SiteSetting.phone_verification_debug_mode
         today = Time.zone.now.strftime("%Y%m%d")
-        user_daily_key = "phone_gatekeeper:daily:#{@user.id}:#{today}"
+        user_daily_key = "phone_verification:daily:#{@user.id}:#{today}"
         current_user_count = Discourse.redis.get(user_daily_key).to_i
-        limit = SiteSetting.phone_gatekeeper_sms_daily_limit_per_user
+        limit = SiteSetting.phone_verification_sms_daily_limit_per_user
 
         if current_user_count >= limit
           return(
             {
               success: false,
-              error: I18n.t("phone_gatekeeper.errors.daily_limit_exceeded")
+              error: I18n.t("phone_verification.errors.daily_limit_exceeded")
             }
           )
         end
@@ -81,18 +81,18 @@ module PhoneGatekeeper
       # Generate 6-digit OTP
       code = format("%06d", SecureRandom.random_number(1_000_000))
       expiry_minutes =
-        SiteSetting.phone_gatekeeper_verification_code_expiry_minutes
+        SiteSetting.phone_verification_verification_code_expiry_minutes
 
       # Send SMS (skipped in debug mode)
-      if SiteSetting.phone_gatekeeper_debug_mode
+      if SiteSetting.phone_verification_debug_mode
         Rails.logger.info(
-          "[PhoneGatekeeper DEBUG] Generated verification code #{code} for #{formatted_phone} (SMS sending skipped)"
+          "[PhoneVerification DEBUG] Generated verification code #{code} for #{formatted_phone} (SMS sending skipped)"
         )
       else
         site_title = SiteSetting.title
         sms_text =
           I18n.t(
-            "phone_gatekeeper.sms_message",
+            "phone_verification.sms_message",
             site_title: site_title,
             code: code,
             expiry: expiry_minutes
@@ -107,15 +107,15 @@ module PhoneGatekeeper
       end
 
       # Save to Redis
-      code_key = "phone_gatekeeper:code:#{@user.id}"
+      code_key = "phone_verification:code:#{@user.id}"
       payload = { phone: formatted_phone, code: code, attempts: 0 }.to_json
       Discourse.redis.setex(code_key, expiry_minutes * 60, payload)
 
       # Set cooldown & increment daily count
       Discourse.redis.setex(cooldown_key, COOLDOWN_SECONDS, "1")
-      unless SiteSetting.phone_gatekeeper_debug_mode
+      unless SiteSetting.phone_verification_debug_mode
         today = Time.zone.now.strftime("%Y%m%d")
-        user_daily_key = "phone_gatekeeper:daily:#{@user.id}:#{today}"
+        user_daily_key = "phone_verification:daily:#{@user.id}:#{today}"
         Discourse.redis.incr(user_daily_key)
         Discourse.redis.expire(user_daily_key, 86_400)
       end
@@ -129,7 +129,7 @@ module PhoneGatekeeper
         return(
           {
             success: false,
-            error: I18n.t("phone_gatekeeper.errors.invalid_phone_number")
+            error: I18n.t("phone_verification.errors.invalid_phone_number")
           }
         )
       end
@@ -142,21 +142,21 @@ module PhoneGatekeeper
         return(
           {
             success: false,
-            error: I18n.t("phone_gatekeeper.errors.phone_already_used")
+            error: I18n.t("phone_verification.errors.phone_already_used")
           }
         )
       end
 
       cleaned_code = code.to_s.strip
-      code_key = "phone_gatekeeper:code:#{@user.id}"
+      code_key = "phone_verification:code:#{@user.id}"
 
-      if SiteSetting.phone_gatekeeper_debug_mode
+      if SiteSetting.phone_verification_debug_mode
         # Debug mode: accept any 6-digit code without checking Redis cache
         unless cleaned_code =~ /^\d{6}$/
           return(
             {
               success: false,
-              error: I18n.t("phone_gatekeeper.errors.invalid_code")
+              error: I18n.t("phone_verification.errors.invalid_code")
             }
           )
         end
@@ -168,7 +168,7 @@ module PhoneGatekeeper
           return(
             {
               success: false,
-              error: I18n.t("phone_gatekeeper.errors.invalid_code")
+              error: I18n.t("phone_verification.errors.invalid_code")
             }
           )
         end
@@ -183,7 +183,7 @@ module PhoneGatekeeper
           return(
             {
               success: false,
-              error: I18n.t("phone_gatekeeper.errors.too_many_attempts")
+              error: I18n.t("phone_verification.errors.too_many_attempts")
             }
           )
         end
@@ -195,7 +195,7 @@ module PhoneGatekeeper
           return(
             {
               success: false,
-              error: I18n.t("phone_gatekeeper.errors.invalid_code")
+              error: I18n.t("phone_verification.errors.invalid_code")
             }
           )
         end
@@ -219,7 +219,7 @@ module PhoneGatekeeper
 
       # Trigger Group Sync & Events
       GroupSyncService.sync_user(@user)
-      DiscourseEvent.trigger(:phone_gatekeeper_user_verified, @user, record)
+      DiscourseEvent.trigger(:phone_verification_user_verified, @user, record)
 
       {
         success: true,
@@ -234,14 +234,14 @@ module PhoneGatekeeper
         return(
           {
             success: false,
-            error: I18n.t("phone_gatekeeper.errors.not_verified")
+            error: I18n.t("phone_verification.errors.not_verified")
           }
         )
       end
 
       active_record.deactivate!
       GroupSyncService.sync_user(@user)
-      DiscourseEvent.trigger(:phone_gatekeeper_user_unbound, @user)
+      DiscourseEvent.trigger(:phone_verification_user_unbound, @user)
 
       { success: true }
     end

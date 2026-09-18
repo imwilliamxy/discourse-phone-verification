@@ -1,36 +1,36 @@
 # frozen_string_literal: true
 
-# name: uscardforum-phone-gatekeeper
+# name: uscardforum-phone-verification
 # about: US (+1) Phone SMS verification and Trust Level gated category access for Discourse
 # version: 0.1.0
 # authors: uscardforum
-# url: https://github.com/uscardforum/uscardforum-phone-gatekeeper
+# url: https://github.com/uscardforum/uscardforum-phone-verification
 
-enabled_site_setting :phone_gatekeeper_enabled
+enabled_site_setting :phone_verification_enabled
 
-module ::PhoneGatekeeper
-  PLUGIN_NAME = "uscardforum-phone-gatekeeper"
+module ::PhoneVerification
+  PLUGIN_NAME = "uscardforum-phone-verification"
 end
 
-require_relative "lib/phone_gatekeeper/engine"
+require_relative "lib/phone_verification/engine"
 
 after_initialize do
-  require_relative "lib/phone_gatekeeper/site_settings_extension"
+  require_relative "lib/phone_verification/site_settings_extension"
   SiteSettings::LabelFormatter.singleton_class.prepend(
-    ::PhoneGatekeeper::LocalizedLabelFormatter
+    ::PhoneVerification::LocalizedLabelFormatter
   )
   SiteSetting.singleton_class.prepend(
-    ::PhoneGatekeeper::LocalizedSiteSettingExtension
+    ::PhoneVerification::LocalizedSiteSettingExtension
   )
 
-  require_relative "app/services/problem_check/phone_gatekeeper_missing_dynamic_groups"
-  register_problem_check ProblemCheck::PhoneGatekeeperMissingDynamicGroups
+  require_relative "app/services/problem_check/phone_verification_missing_dynamic_groups"
+  register_problem_check ProblemCheck::PhoneVerificationMissingDynamicGroups
 
   # Event hooks for Trust Level & account status changes
   on(:user_promoted) do |payload|
     user = payload[:user] || User.find_by(id: payload[:user_id])
     if user
-      PhoneGatekeeper::GroupSyncService.sync_user(user)
+      PhoneVerification::GroupSyncService.sync_user(user)
 
       old_tl = payload[:old_trust_level]
       new_tl = payload[:new_trust_level]
@@ -47,33 +47,36 @@ after_initialize do
 
   on(:user_demoted) do |payload|
     user = payload[:user] || User.find_by(id: payload[:user_id])
-    PhoneGatekeeper::GroupSyncService.sync_user(user) if user
+    PhoneVerification::GroupSyncService.sync_user(user) if user
   end
 
   on(:user_suspended) do |payload|
     user = payload[:user] || User.find_by(id: payload[:user_id])
-    PhoneGatekeeper::GroupSyncService.sync_user(user) if user
+    PhoneVerification::GroupSyncService.sync_user(user) if user
   end
 
   on(:user_unsuspended) do |payload|
     user = payload[:user] || User.find_by(id: payload[:user_id])
-    PhoneGatekeeper::GroupSyncService.sync_user(user) if user
+    PhoneVerification::GroupSyncService.sync_user(user) if user
   end
 
   on(:site_setting_changed) do |name, _old_value, _new_value|
     if %i[
-         phone_gatekeeper_enabled
-         phone_gatekeeper_min_trust_level
-         phone_gatekeeper_group_name
+         phone_verification_enabled
+         phone_verification_min_trust_level
+         phone_verification_group_name
        ].include?(name.to_sym)
-      PhoneGatekeeper::GroupSyncService.sync_all
+      PhoneVerification::GroupSyncService.sync_all
     end
   end
 
   # Staff serializer extension to view unmasked phone number
-  add_to_serializer(:admin_detailed_user, :phone_gatekeeper_record) do
+  add_to_serializer(:admin_detailed_user, :phone_verification_record) do
     record =
-      PhoneGatekeeper::UserPhoneRecord.find_by(user_id: object.id, active: true)
+      PhoneVerification::UserPhoneRecord.find_by(
+        user_id: object.id,
+        active: true
+      )
     return nil unless record
 
     {
@@ -86,7 +89,7 @@ after_initialize do
   # Site serializer extension to expose whether discourse-dynamic-groups is installed
   add_to_serializer(
     :site,
-    :phone_gatekeeper_dynamic_groups_installed,
+    :phone_verification_dynamic_groups_installed,
     respect_plugin_enabled: false
   ) { Discourse.plugins.any? { |p| p.name == "discourse-dynamic-groups" } }
 end

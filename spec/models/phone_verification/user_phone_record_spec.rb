@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe PhoneGatekeeper::UserPhoneRecord, type: :model do
+RSpec.describe PhoneVerification::UserPhoneRecord, type: :model do
   fab!(:user)
   fab!(:user_two, :user)
 

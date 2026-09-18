@@ -2,14 +2,14 @@
 
 require "rails_helper"
 
-RSpec.describe PhoneGatekeeper::SmsProvider::AwsSns do
+RSpec.describe PhoneVerification::SmsProvider::AwsSns do
   subject(:provider) { described_class.new }
 
   let(:mock_sns_client) { instance_double(Aws::SNS::Client) }
 
   before do
-    SiteSetting.phone_gatekeeper_enabled = true
-    SiteSetting.phone_gatekeeper_aws_region = "us-west-2"
+    SiteSetting.phone_verification_enabled = true
+    SiteSetting.phone_verification_aws_region = "us-west-2"
     allow(Aws::SNS::Client).to receive(:new).and_return(mock_sns_client)
   end
 

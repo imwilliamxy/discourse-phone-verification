@@ -3,9 +3,9 @@ en:
     admin:
       site_settings:
         categories:
-          phone_gatekeeper: "Phone Gatekeeper"
+          phone_verification: "Phone Verification"
   js:
-    phone_gatekeeper:
+    phone_verification:
       title: "Phone Verification"
       description: "Verify your US (+1) mobile number to access exclusive categories."
       phone_label: "US Phone Number"
@@ -24,14 +24,14 @@ en:
       success_verified: "Phone number verified successfully!"
       success_unbound: "Phone number unbound successfully."
     admin:
-      phone_gatekeeper:
+      phone_verification:
         title: "Phone Verification"
         phone_number: "Bound Phone"
         verified_at: "Verified At"
         status: "Verification Status"
         not_verified: "Not Verified"
         verified: "Verified"
-        group_status: "Gatekeeper Group Status"
+        group_status: "Verification Group Status"
         in_group: "Member of gated group"
         not_in_group: "Not in gated group"
         dynamic_groups:

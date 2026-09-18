@@ -1,17 +1,17 @@
 # frozen_string_literal: true
 
-module PhoneGatekeeper
-  class PhoneGatekeeperController < ::ApplicationController
-    requires_plugin ::PhoneGatekeeper::PLUGIN_NAME
+module PhoneVerification
+  class PhoneVerificationController < ::ApplicationController
+    requires_plugin ::PhoneVerification::PLUGIN_NAME
     requires_login
     before_action :ensure_plugin_enabled
 
     def status
       record = UserPhoneRecord.find_by(user_id: current_user.id, active: true)
       group_name =
-        SiteSetting.phone_gatekeeper_group_name.presence || "phone_verified"
+        SiteSetting.phone_verification_group_name.presence || "phone_verified"
       in_group = current_user.groups.where(name: group_name).exists?
-      min_tl = SiteSetting.phone_gatekeeper_min_trust_level
+      min_tl = SiteSetting.phone_verification_min_trust_level
 
       render json: {
                phone_verified: record.present?,
@@ -66,7 +66,7 @@ module PhoneGatekeeper
     private
 
     def ensure_plugin_enabled
-      raise Discourse::NotFound unless SiteSetting.phone_gatekeeper_enabled
+      raise Discourse::NotFound unless SiteSetting.phone_verification_enabled
     end
   end
 end

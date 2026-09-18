@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module ::PhoneGatekeeper
+module ::PhoneVerification
   module LocalizedLabelFormatter
     def humanized_name(setting)
       setting_key = setting.to_s

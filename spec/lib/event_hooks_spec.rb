@@ -2,11 +2,11 @@
 
 require "rails_helper"
 
-RSpec.describe PhoneGatekeeper do
+RSpec.describe PhoneVerification do
   fab!(:user) { Fabricate(:user, trust_level: TrustLevel[4]) }
 
   before do
-    SiteSetting.phone_gatekeeper_enabled = true
+    SiteSetting.phone_verification_enabled = true
     # Ensure trust level automatic groups exist
     Group.refresh_automatic_groups!
   end

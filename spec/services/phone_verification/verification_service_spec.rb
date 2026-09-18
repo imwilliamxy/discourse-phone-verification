@@ -2,23 +2,23 @@
 
 require "rails_helper"
 
-RSpec.describe PhoneGatekeeper::VerificationService do
+RSpec.describe PhoneVerification::VerificationService do
   fab!(:user)
   let(:phone) { "+14155552671" }
 
   before do
-    SiteSetting.phone_gatekeeper_enabled = true
-    SiteSetting.phone_gatekeeper_sms_daily_limit_per_user = 3
+    SiteSetting.phone_verification_enabled = true
+    SiteSetting.phone_verification_sms_daily_limit_per_user = 3
     Discourse.redis.flushdb
 
-    mock_provider = instance_double(PhoneGatekeeper::SmsProvider::Base)
+    mock_provider = instance_double(PhoneVerification::SmsProvider::Base)
     allow(mock_provider).to receive(:send_sms).and_return(
-      PhoneGatekeeper::SmsProvider::Result.new(
+      PhoneVerification::SmsProvider::Result.new(
         success: true,
         message_id: "test_msg"
       )
     )
-    allow(PhoneGatekeeper::SmsProvider::Factory).to receive(:get).and_return(
+    allow(PhoneVerification::SmsProvider::Factory).to receive(:get).and_return(
       mock_provider
     )
   end
@@ -42,33 +42,35 @@ RSpec.describe PhoneGatekeeper::VerificationService do
 
     context "when daily limit is reached" do
       let(:today) { Time.zone.now.strftime("%Y%m%d") }
-      let(:daily_key) { "phone_gatekeeper:daily:#{user.id}:#{today}" }
+      let(:daily_key) { "phone_verification:daily:#{user.id}:#{today}" }
 
       before { Discourse.redis.set(daily_key, 3) }
 
       it "blocks sending in production mode" do
-        SiteSetting.phone_gatekeeper_debug_mode = false
+        SiteSetting.phone_verification_debug_mode = false
         result = described_class.send_code(user: user, phone_number: phone)
         expect(result[:success]).to be false
         expect(result[:error]).to eq(
-          I18n.t("phone_gatekeeper.errors.daily_limit_exceeded")
+          I18n.t("phone_verification.errors.daily_limit_exceeded")
         )
       end
 
       it "allows sending when debug mode is enabled" do
-        SiteSetting.phone_gatekeeper_debug_mode = true
+        SiteSetting.phone_verification_debug_mode = true
         result = described_class.send_code(user: user, phone_number: phone)
         expect(result[:success]).to be true
       end
     end
 
     context "when debug mode is enabled" do
-      before { SiteSetting.phone_gatekeeper_debug_mode = true }
+      before { SiteSetting.phone_verification_debug_mode = true }
 
       it "does not call SMS provider and succeeds" do
-        allow(PhoneGatekeeper::SmsProvider::Factory).to receive(:get)
+        allow(PhoneVerification::SmsProvider::Factory).to receive(:get)
         result = described_class.send_code(user: user, phone_number: phone)
-        expect(PhoneGatekeeper::SmsProvider::Factory).not_to have_received(:get)
+        expect(PhoneVerification::SmsProvider::Factory).not_to have_received(
+          :get
+        )
         expect(result[:success]).to be true
         expect(result[:cooldown_seconds]).to eq(60)
       end
@@ -77,12 +79,12 @@ RSpec.describe PhoneGatekeeper::VerificationService do
 
   describe "#verify_code" do
     context "when debug mode is disabled (production mode)" do
-      before { SiteSetting.phone_gatekeeper_debug_mode = false }
+      before { SiteSetting.phone_verification_debug_mode = false }
 
       it "verifies correct code from Redis and creates active phone record" do
         described_class.send_code(user: user, phone_number: phone)
         code_data =
-          JSON.parse(Discourse.redis.get("phone_gatekeeper:code:#{user.id}"))
+          JSON.parse(Discourse.redis.get("phone_verification:code:#{user.id}"))
         valid_code = code_data["code"]
 
         result =
@@ -94,13 +96,13 @@ RSpec.describe PhoneGatekeeper::VerificationService do
         expect(result[:success]).to be true
         expect(result[:phone_number_masked]).to eq("+1 (***) ***-2671")
         expect(
-          PhoneGatekeeper::UserPhoneRecord.where(
+          PhoneVerification::UserPhoneRecord.where(
             user: user,
             active: true
           ).exists?
         ).to be true
         expect(
-          Discourse.redis.get("phone_gatekeeper:code:#{user.id}")
+          Discourse.redis.get("phone_verification:code:#{user.id}")
         ).to be_nil
       end
 
@@ -129,7 +131,7 @@ RSpec.describe PhoneGatekeeper::VerificationService do
     end
 
     context "when debug mode is enabled" do
-      before { SiteSetting.phone_gatekeeper_debug_mode = true }
+      before { SiteSetting.phone_verification_debug_mode = true }
 
       it "verifies any 6-digit code without sending code" do
         result =
@@ -141,7 +143,7 @@ RSpec.describe PhoneGatekeeper::VerificationService do
         expect(result[:success]).to be true
         expect(result[:phone_number_masked]).to eq("+1 (***) ***-2671")
         expect(
-          PhoneGatekeeper::UserPhoneRecord.where(
+          PhoneVerification::UserPhoneRecord.where(
             user: user,
             active: true
           ).exists?
@@ -163,7 +165,7 @@ RSpec.describe PhoneGatekeeper::VerificationService do
 
   describe "#unbind" do
     it "deactivates phone record and updates group access" do
-      PhoneGatekeeper::UserPhoneRecord.create!(
+      PhoneVerification::UserPhoneRecord.create!(
         user: user,
         phone_number: phone,
         verified_at: Time.zone.now,
@@ -173,7 +175,10 @@ RSpec.describe PhoneGatekeeper::VerificationService do
       result = described_class.unbind(user: user)
       expect(result[:success]).to be true
       expect(
-        PhoneGatekeeper::UserPhoneRecord.where(user: user, active: true).exists?
+        PhoneVerification::UserPhoneRecord.where(
+          user: user,
+          active: true
+        ).exists?
       ).to be false
     end
   end

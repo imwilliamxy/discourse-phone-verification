@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-module PhoneGatekeeper
+module PhoneVerification
   class GroupSyncService
     def self.sync_user(user)
       new(user).sync
     end
 
     def self.sync_all
-      return unless SiteSetting.phone_gatekeeper_enabled
+      return unless SiteSetting.phone_verification_enabled
 
       group = find_or_create_target_group
       return unless group
@@ -23,7 +23,7 @@ module PhoneGatekeeper
 
     def self.find_or_create_target_group
       group_name =
-        SiteSetting.phone_gatekeeper_group_name.presence || "phone_verified"
+        SiteSetting.phone_verification_group_name.presence || "phone_verified"
       Group.find_by(name: group_name) ||
         Group.create!(
           name: group_name,
@@ -33,7 +33,7 @@ module PhoneGatekeeper
         )
     rescue ActiveRecord::RecordInvalid => e
       Rails.logger.error(
-        "[PhoneGatekeeper] Error ensuring group #{group_name}: #{e.message}"
+        "[PhoneVerification] Error ensuring group #{group_name}: #{e.message}"
       )
       nil
     end
@@ -44,7 +44,7 @@ module PhoneGatekeeper
 
     def sync
       return unless @user && !@user.anonymous?
-      return unless SiteSetting.phone_gatekeeper_enabled
+      return unless SiteSetting.phone_verification_enabled
 
       group = find_or_create_target_group
       return unless group
@@ -58,7 +58,7 @@ module PhoneGatekeeper
 
     def eligible?
       return false if @user.suspended?
-      if @user.trust_level < SiteSetting.phone_gatekeeper_min_trust_level
+      if @user.trust_level < SiteSetting.phone_verification_min_trust_level
         return false
       end
 
