@@ -14,10 +14,10 @@ Discourse 手机号验证插件，支持美国（+1）手机号短信验证码�
    - 个人偏好设置页面中对本人脱敏显示（如 `+1 (***) ***-1234`）。
    - 仅管理员 / Staff 在管理后台（Admin -> Users -> 详情页）可见完整手机号。
    - 短信防刷：单用户 60 秒发送冷却、每日发送次数上限、验证码有效期（10分钟）、最大重试错误次数（5次）。
-3. **复合门禁与用户组联动**：
+3. **多重限制与用户组联动**：
    - **基础同步**：插件内置轻量级加组服务，支持将满足条件的用户自动同步至 `phone_verified` 用户组。
-   - **动态规则（推荐）**：与 [discourse-dynamic-groups](https://github.com/communiteq/discourse-dynamic-groups) 深度配合，支持通过灵活的 SQL 规则构建诸如「Trust Level X 且已验证手机号」的复合门禁组。
-   - **原生板块权限**：管理员通过 Discourse 原生 `Category -> Security` 权限为门禁组分配 `See / Reply / Create` 访问控制。
+   - **动态规则（推荐）**：与 [discourse-dynamic-groups](https://github.com/communiteq/discourse-dynamic-groups) 深度配合，支持通过灵活的 SQL 规则构建诸如「Trust Level X 且已验证手机号」的复合限制策略。
+   - **原生板块权限**：管理员通过 Discourse 原生 `Category -> Security` 权限为用户组分配 `See / Reply / Create` 访问控制。
 4. **可扩展 SMS Provider 架构**：
    - 抽象通用短信适配器接口，已实现 **AWS SNS** 与 **Twilio**，并支持灵活扩展。
 
@@ -26,7 +26,7 @@ Discourse 手机号验证插件，支持美国（+1）手机号短信验证码�
 ## 2. 前置依赖与安装指南 (Installation)
 
 ### ⚠️ 前置依赖声明 (Prerequisites)
-如需实现 **“Trust Level X 且 Phone Verified”** 等复合条件门禁，建议在安装本插件的同时安装 [discourse-dynamic-groups](https://github.com/communiteq/discourse-dynamic-groups) 插件。
+如需实现 **“Trust Level X 且 Phone Verified”** 等复合条件限制，建议在安装本插件的同时安装 [discourse-dynamic-groups](https://github.com/communiteq/discourse-dynamic-groups) 插件。
 
 若启用插件后未检测到 `discourse-dynamic-groups`，Discourse 管理员后台仪表盘（Dashboard）会自动提示问题警告。
 
@@ -41,7 +41,7 @@ hooks:
         cmd:
           # 1. 动态用户组插件（推荐先引入）
           - git clone https://github.com/communiteq/discourse-dynamic-groups.git
-          # 2. 手机号验证门禁插件
+          # 2. 手机号验证插件
           - git clone https://github.com/uscardforum/uscardforum-phone-verification.git
 ```
 
@@ -59,7 +59,7 @@ hooks:
 | 设置项 | 默认值 | 说明 |
 | :--- | :--- | :--- |
 | `phone_verification_enabled` | `false` | 启用/禁用手机号验证插件 |
-| `phone_verification_min_trust_level` | `1` | 内置门禁所需的最低信任等级 (0 ~ 4) |
+| `phone_verification_min_trust_level` | `1` | 验证手机号用户所需的最低信任等级 (0 ~ 4) |
 | `phone_verification_group_name` | `phone_verified` | 内置同步的目标用户组名称 |
 | `phone_verification_sms_provider` | `aws_sns` | 短信网关服务商驱动（`aws_sns` 或 `twilio`） |
 | `phone_verification_aws_region` | `us-east-1` | AWS SNS 服务所在 Region |
@@ -76,9 +76,9 @@ hooks:
 
 ---
 
-## 4. 配合 discourse-dynamic-groups 配置板块门禁 (Best Practice)
+## 4. 配合 discourse-dynamic-groups 配置板块限制 (Best Practice)
 
-Discourse 原生的板块权限（Category Security）在多个组之间采用 **OR（满足任一即可）** 逻辑。为了实现 **“Trust Level 2 且 手机号已验证”** 的复合门禁，推荐通过动态组进行组合：
+Discourse 原生的板块权限（Category Security）在多个组之间采用 **OR（满足任一即可）** 逻辑。为了实现 **“Trust Level 2 且 手机号已验证”** 的复合限制，推荐通过动态组进行组合：
 
 ### 步骤 1：在后台创建动态用户组
 进入 `Admin -> Groups -> New Dynamic Group`，配置动态规则：
@@ -124,7 +124,7 @@ WHERE u.trust_level >= 3
 插件内置了目标用户组的自动保障与同步机制：
 
 ### 5.1 自动创建机制
-- **触发时机**：当在管理后台启用插件（`phone_verification_enabled = true`）或修改门禁相关设置（如最低信任等级、组名称）并保存时，Discourse 会触发 `site_setting_changed` 事件。
+- **触发时机**：当在管理后台启用插件（`phone_verification_enabled = true`）或修改插件相关设置（如最低信任等级、组名称）并保存时，Discourse 会触发 `site_setting_changed` 事件。
 - **自动初始化**：插件会自动检查数据库中是否存在名为 `phone_verification_group_name`（默认 `phone_verified`）的用户组；若不存在（例如在全新环境或重置数据库后），插件会自动调用 `Group.create!` 创建该用户组。
 
 ### 5.2 默认安全属性
