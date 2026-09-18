@@ -1,9 +1,9 @@
 zh_CN:
   site_settings:
     names:
-      phone_verification_enabled: "启用手机号验证门禁"
-      phone_verification_min_trust_level: "门禁准入最低信任等级"
-      phone_verification_group_name: "受管门禁用户组标识"
+      phone_verification_enabled: "启用手机号验证插件"
+      phone_verification_min_trust_level: "验证手机号用户的最低信任等级"
+      phone_verification_group_name: "验证通过的用户加入的用户组名称"
       phone_verification_sms_provider: "短信服务商"
       phone_verification_aws_region: "AWS 服务区域 (Region)"
       phone_verification_aws_access_key_id: "AWS Access Key ID"
@@ -21,9 +21,9 @@ zh_CN:
         aws_sns: "Amazon SNS"
         twilio: "Twilio"
     keywords:
-      phone_verification_enabled: "手机|手机号|短信|验证码|门禁|启用|绑定"
-      phone_verification_min_trust_level: "信任等级|门禁|准入|TL|最低"
-      phone_verification_group_name: "用户组|门禁组|群组|group"
+      phone_verification_enabled: "手机|手机号|短信|验证码|启用|绑定"
+      phone_verification_min_trust_level: "信任等级|准入|TL|最低"
+      phone_verification_group_name: "用户组|群组|group"
       phone_verification_sms_provider: "短信服务商|短信网关|AWS|SNS|Twilio|provider"
       phone_verification_aws_region: "AWS|SNS|区域|Region"
       phone_verification_aws_access_key_id: "AWS|Access Key|AK"
@@ -38,7 +38,7 @@ zh_CN:
       phone_verification_debug_mode: "调试|debug|测试|验证码|跳过|bypass"
     phone_verification_enabled: "启用用户手机号验证插件（+1 短信验证）。推荐配合 discourse-dynamic-groups 插件使用以获得动态用户组与复合限制能力。"
     phone_verification_min_trust_level: "准入专属用户组所需的最低信任等级 (Trust Level)。"
-    phone_verification_group_name: "受管的专属门禁用户组标识名称。"
+    phone_verification_group_name: "受管的专属已验证手机号用户组名称。"
     phone_verification_sms_provider: "短信发送服务商（如 AWS SNS、Twilio）。"
     phone_verification_aws_region: "AWS SNS 服务区域（Region）。"
     phone_verification_aws_access_key_id: "AWS Access Key ID（留空则使用环境或 IAM 角色）。"
@@ -53,7 +53,7 @@ zh_CN:
     phone_verification_debug_mode: "启用调试模式。开启后，将跳过真实短信发送（不调用短信网关 API 且不限制单日发送次数），用户输入任意 6 位数字验证码均可通过验证（用于开发和测试环境）。生产环境请务必关闭此选项！"
   dashboard:
     problem:
-      phone_verification_missing_dynamic_groups: "手机号门禁插件已启用，但尚未安装推荐的前置插件 <a href='https://github.com/communiteq/discourse-dynamic-groups' target='_blank'>discourse-dynamic-groups</a>。如需使用更灵活的动态用户组及复合板块门禁规则，请在 app.yml 中添加该插件。"
+      phone_verification_missing_dynamic_groups: "手机号验证插件已启用，但尚未安装推荐的前置插件 <a href='https://github.com/communiteq/discourse-dynamic-groups' target='_blank'>discourse-dynamic-groups</a>。如需使用更灵活的动态用户组及复合板块限制规则，请在 app.yml 中添加该插件。"
   phone_verification:
     sms_message: "【%{site_title}】您的验证码是 %{code}，%{expiry}分钟内有效。请勿向他人泄露。"
     errors:

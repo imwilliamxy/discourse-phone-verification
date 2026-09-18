@@ -10,12 +10,12 @@ RSpec.describe PhoneVerification::LocalizedLabelFormatter do
           SiteSettings::LabelFormatter.humanized_name(
             :phone_verification_enabled
           )
-        ).to eq("启用手机号验证门禁")
+        ).to eq("启用手机号验证插件")
         expect(
           SiteSettings::LabelFormatter.humanized_name(
             :phone_verification_min_trust_level
           )
-        ).to eq("门禁准入最低信任等级")
+        ).to eq("可验证手机号的用户最低信任等级")
         expect(
           SiteSettings::LabelFormatter.humanized_name(
             :phone_verification_sms_provider
@@ -52,7 +52,7 @@ RSpec.describe PhoneVerification::LocalizedLabelFormatter do
         name_en = SiteSetting.humanized_names(:phone_verification_enabled)
       end
 
-      expect(name_zh).to eq("启用手机号验证门禁")
+      expect(name_zh).to eq("启用手机号验证插件")
       expect(name_en).to eq("Phone Verification Enabled")
     end
   end
