@@ -26,8 +26,49 @@ after_initialize do
   require_relative "app/services/problem_check/phone_verification_missing_dynamic_groups"
   register_problem_check ProblemCheck::PhoneVerificationMissingDynamicGroups
 
+  # Defensive reloader compatibility for dynamic groups during Rails code reloads
+  ActiveSupport::Reloader.to_prepare do
+    if defined?(::DiscourseDynamicGroups)
+      unless Group.method_defined?(:get_depending_group_ids)
+        class ::Group
+          def get_depending_group_ids
+            GroupCustomField.where(name: "depends_on_#{self.name.downcase}").pluck(:group_id)
+          end
+        end
+      end
+
+      unless Group.method_defined?(:evaluate_membership)
+        class ::Group
+          def evaluate_membership(user)
+            return unless defined?(::DiscourseDynamicGroups::RuleEngine)
+            engine = ::DiscourseDynamicGroups::RuleEngine.new
+            membership = engine.evaluate_rule(user, dynamic_rule)
+            is_member = GroupUser.where(user_id: user.id).where(group_id: self.id).exists?
+            if is_member && !membership
+              self.remove(user)
+              false
+            elsif !is_member && membership
+              self.add(user)
+              true
+            end
+          end
+        end
+      end
+
+      unless Badge.method_defined?(:get_depending_group_ids)
+        class ::Badge
+          def get_depending_group_ids
+            GroupCustomField.where(name: "depends_on_badge:#{self.id}").pluck(:group_id)
+          end
+        end
+      end
+    end
+  end
+
   # Event hooks for Trust Level & account status changes
   on(:user_promoted) do |payload|
+    next unless SiteSetting.phone_verification_enabled
+
     user = payload[:user] || User.find_by(id: payload[:user_id])
     if user
       PhoneVerification::GroupSyncService.sync_user(user)
@@ -46,16 +87,22 @@ after_initialize do
   end
 
   on(:user_demoted) do |payload|
+    next unless SiteSetting.phone_verification_enabled
+
     user = payload[:user] || User.find_by(id: payload[:user_id])
     PhoneVerification::GroupSyncService.sync_user(user) if user
   end
 
   on(:user_suspended) do |payload|
+    next unless SiteSetting.phone_verification_enabled
+
     user = payload[:user] || User.find_by(id: payload[:user_id])
     PhoneVerification::GroupSyncService.sync_user(user) if user
   end
 
   on(:user_unsuspended) do |payload|
+    next unless SiteSetting.phone_verification_enabled
+
     user = payload[:user] || User.find_by(id: payload[:user_id])
     PhoneVerification::GroupSyncService.sync_user(user) if user
   end

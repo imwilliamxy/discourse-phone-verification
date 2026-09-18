@@ -15,7 +15,7 @@ RSpec.describe PhoneVerification::LocalizedLabelFormatter do
           SiteSettings::LabelFormatter.humanized_name(
             :phone_verification_min_trust_level
           )
-        ).to eq("可验证手机号的用户最低信任等级")
+        ).to eq("验证手机号用户的最低信任等级")
         expect(
           SiteSettings::LabelFormatter.humanized_name(
             :phone_verification_sms_provider

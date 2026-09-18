@@ -65,5 +65,52 @@ RSpec.describe PhoneVerification do
         DiscourseEvent.off(:user_removed_from_group, &event_listener)
       end
     end
+
+    it "bypasses sync and event emission when phone_verification_enabled is false" do
+      SiteSetting.phone_verification_enabled = false
+
+      expect(PhoneVerification::GroupSyncService).not_to receive(:sync_user)
+
+      removed_groups = []
+      event_listener =
+        proc do |removed_user, group|
+          removed_groups << group.name if removed_user.id == user.id
+        end
+
+      DiscourseEvent.on(:user_removed_from_group, &event_listener)
+
+      begin
+        DiscourseEvent.trigger(
+          :user_promoted,
+          user_id: user.id,
+          old_trust_level: 4,
+          new_trust_level: 1
+        )
+
+        expect(removed_groups).to be_empty
+      ensure
+        DiscourseEvent.off(:user_removed_from_group, &event_listener)
+      end
+    end
+  end
+
+  describe "user_demoted, user_suspended, and user_unsuspended events" do
+    it "does not call sync_user when phone_verification_enabled is false" do
+      SiteSetting.phone_verification_enabled = false
+
+      expect(PhoneVerification::GroupSyncService).not_to receive(:sync_user)
+
+      DiscourseEvent.trigger(:user_demoted, user_id: user.id)
+      DiscourseEvent.trigger(:user_suspended, user_id: user.id)
+      DiscourseEvent.trigger(:user_unsuspended, user_id: user.id)
+    end
+
+    it "calls sync_user when phone_verification_enabled is true" do
+      expect(PhoneVerification::GroupSyncService).to receive(:sync_user).with(user).exactly(3).times
+
+      DiscourseEvent.trigger(:user_demoted, user: user)
+      DiscourseEvent.trigger(:user_suspended, user: user)
+      DiscourseEvent.trigger(:user_unsuspended, user: user)
+    end
   end
 end
