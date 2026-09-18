@@ -12,8 +12,7 @@ module PhoneGatekeeper
       group = find_or_create_target_group
       return unless group
 
-      active_user_ids =
-        UserPhoneRecord.where(active: true).pluck(:user_id).uniq
+      active_user_ids = UserPhoneRecord.where(active: true).pluck(:user_id).uniq
 
       User.where(id: active_user_ids).find_each { |user| sync_user(user) }
 

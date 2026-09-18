@@ -16,8 +16,12 @@ require_relative "lib/phone_gatekeeper/engine"
 
 after_initialize do
   require_relative "lib/phone_gatekeeper/site_settings_extension"
-  SiteSettings::LabelFormatter.singleton_class.prepend(::PhoneGatekeeper::LocalizedLabelFormatter)
-  SiteSetting.singleton_class.prepend(::PhoneGatekeeper::LocalizedSiteSettingExtension)
+  SiteSettings::LabelFormatter.singleton_class.prepend(
+    ::PhoneGatekeeper::LocalizedLabelFormatter
+  )
+  SiteSetting.singleton_class.prepend(
+    ::PhoneGatekeeper::LocalizedSiteSettingExtension
+  )
 
   require_relative "app/services/problem_check/phone_gatekeeper_missing_dynamic_groups"
   register_problem_check ProblemCheck::PhoneGatekeeperMissingDynamicGroups
@@ -78,4 +82,11 @@ after_initialize do
       active: record.active
     }
   end
+
+  # Site serializer extension to expose whether discourse-dynamic-groups is installed
+  add_to_serializer(
+    :site,
+    :phone_gatekeeper_dynamic_groups_installed,
+    respect_plugin_enabled: false
+  ) { Discourse.plugins.any? { |p| p.name == "discourse-dynamic-groups" } }
 end

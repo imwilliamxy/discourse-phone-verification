@@ -2,19 +2,31 @@
 
 require "rails_helper"
 
-RSpec.describe "Site Settings Localization" do
+RSpec.describe PhoneGatekeeper::LocalizedLabelFormatter do
   describe "SiteSettings::LabelFormatter.humanized_name" do
     it "returns localized name in zh_CN" do
       I18n.with_locale(:zh_CN) do
-        expect(SiteSettings::LabelFormatter.humanized_name(:phone_gatekeeper_enabled)).to eq("启用手机号验证门禁")
-        expect(SiteSettings::LabelFormatter.humanized_name(:phone_gatekeeper_min_trust_level)).to eq("门禁准入最低信任等级")
-        expect(SiteSettings::LabelFormatter.humanized_name(:phone_gatekeeper_sms_provider)).to eq("短信服务商")
+        expect(
+          SiteSettings::LabelFormatter.humanized_name(:phone_gatekeeper_enabled)
+        ).to eq("启用手机号验证门禁")
+        expect(
+          SiteSettings::LabelFormatter.humanized_name(
+            :phone_gatekeeper_min_trust_level
+          )
+        ).to eq("门禁准入最低信任等级")
+        expect(
+          SiteSettings::LabelFormatter.humanized_name(
+            :phone_gatekeeper_sms_provider
+          )
+        ).to eq("短信服务商")
       end
     end
 
     it "returns localized name in en" do
       I18n.with_locale(:en) do
-        expect(SiteSettings::LabelFormatter.humanized_name(:phone_gatekeeper_enabled)).to eq("Phone Gatekeeper Enabled")
+        expect(
+          SiteSettings::LabelFormatter.humanized_name(:phone_gatekeeper_enabled)
+        ).to eq("Phone Gatekeeper Enabled")
       end
     end
 
@@ -60,7 +72,9 @@ RSpec.describe "Site Settings Localization" do
         setting = find_setting(setting_name)
         expect(setting).to be_present
         expect(setting[:depends_on]).to eq([:phone_gatekeeper_sms_provider])
-        expect(setting[:depends_on_values]).to eq(phone_gatekeeper_sms_provider: ["aws_sns"])
+        expect(setting[:depends_on_values]).to eq(
+          phone_gatekeeper_sms_provider: ["aws_sns"]
+        )
         expect(setting[:depends_behavior]).to eq(:hidden)
       end
     end
@@ -77,10 +91,11 @@ RSpec.describe "Site Settings Localization" do
         setting = find_setting(setting_name)
         expect(setting).to be_present
         expect(setting[:depends_on]).to eq([:phone_gatekeeper_sms_provider])
-        expect(setting[:depends_on_values]).to eq(phone_gatekeeper_sms_provider: ["twilio"])
+        expect(setting[:depends_on_values]).to eq(
+          phone_gatekeeper_sms_provider: ["twilio"]
+        )
         expect(setting[:depends_behavior]).to eq(:hidden)
       end
     end
   end
 end
-

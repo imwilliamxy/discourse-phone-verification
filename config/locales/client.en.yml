@@ -34,3 +34,11 @@ en:
         group_status: "Gatekeeper Group Status"
         in_group: "Member of gated group"
         not_in_group: "Not in gated group"
+        dynamic_groups:
+          installed_badge: "dynamic-groups ready"
+          missing_badge: "dynamic-groups missing"
+          installed_title: "discourse-dynamic-groups plugin is installed"
+          installed_description: "discourse-dynamic-groups was detected. Composite gatekeeping and dynamic group rules are ready. You can configure dynamic rules based on phone verification and Trust Level in Admin -> Groups."
+          missing_title: "Notice: discourse-dynamic-groups is not installed"
+          missing_description: "Basic phone verification (+1 SMS) and phone_verified group syncing are functioning. If you need advanced composite category access rules (such as custom SQL conditions and multi-tier TL filters), we recommend installing discourse-dynamic-groups."
+          learn_more: "Learn More"

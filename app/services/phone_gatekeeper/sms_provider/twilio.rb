@@ -12,21 +12,28 @@ module PhoneGatekeeper
       def send_sms(to:, message:)
         account_sid = SiteSetting.phone_gatekeeper_twilio_account_sid.to_s.strip
         auth_token = SiteSetting.phone_gatekeeper_twilio_auth_token.to_s.strip
-        from_phone = SiteSetting.phone_gatekeeper_twilio_from_phone_number.to_s.strip
+        from_phone =
+          SiteSetting.phone_gatekeeper_twilio_from_phone_number.to_s.strip
         messaging_service_sid =
           SiteSetting.phone_gatekeeper_twilio_messaging_service_sid.to_s.strip
 
         if account_sid.blank? || auth_token.blank?
-          return Result.new(
-            success: false,
-            error_message: "Twilio Account SID and Auth Token must be configured."
+          return(
+            Result.new(
+              success: false,
+              error_message:
+                "Twilio Account SID and Auth Token must be configured."
+            )
           )
         end
 
         if from_phone.blank? && messaging_service_sid.blank?
-          return Result.new(
-            success: false,
-            error_message: "Twilio From Phone Number or Messaging Service SID must be configured."
+          return(
+            Result.new(
+              success: false,
+              error_message:
+                "Twilio From Phone Number or Messaging Service SID must be configured."
+            )
           )
         end
 
@@ -43,7 +50,11 @@ module PhoneGatekeeper
         request.set_form_data(form_data)
 
         response =
-          FinalDestination::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
+          FinalDestination::HTTP.start(
+            uri.host,
+            uri.port,
+            use_ssl: true
+          ) do |http|
             http.read_timeout = 15
             http.open_timeout = 10
             http.request(request)

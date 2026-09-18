@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe "Phone Gatekeeper Event Hooks" do
+RSpec.describe PhoneGatekeeper do
   fab!(:user) { Fabricate(:user, trust_level: TrustLevel[4]) }
 
   before do
@@ -18,9 +18,10 @@ RSpec.describe "Phone Gatekeeper Event Hooks" do
       tl2_group = Group.find_by(name: "trust_level_2")
 
       removed_groups = []
-      event_listener = proc do |removed_user, group|
-        removed_groups << group.name if removed_user.id == user.id
-      end
+      event_listener =
+        proc do |removed_user, group|
+          removed_groups << group.name if removed_user.id == user.id
+        end
 
       DiscourseEvent.on(:user_removed_from_group, &event_listener)
 
@@ -32,7 +33,11 @@ RSpec.describe "Phone Gatekeeper Event Hooks" do
           new_trust_level: 1
         )
 
-        expect(removed_groups).to contain_exactly("trust_level_2", "trust_level_3", "trust_level_4")
+        expect(removed_groups).to contain_exactly(
+          "trust_level_2",
+          "trust_level_3",
+          "trust_level_4"
+        )
       ensure
         DiscourseEvent.off(:user_removed_from_group, &event_listener)
       end
@@ -40,9 +45,10 @@ RSpec.describe "Phone Gatekeeper Event Hooks" do
 
     it "does not trigger :user_removed_from_group when user is actually promoted" do
       removed_groups = []
-      event_listener = proc do |removed_user, group|
-        removed_groups << group.name if removed_user.id == user.id
-      end
+      event_listener =
+        proc do |removed_user, group|
+          removed_groups << group.name if removed_user.id == user.id
+        end
 
       DiscourseEvent.on(:user_removed_from_group, &event_listener)
 

@@ -27,7 +27,9 @@ export default class PhoneGatekeeperUserDetails extends Component {
       <section class="details phone-gatekeeper-admin-details">
         <h1>{{i18n "admin.phone_gatekeeper.title"}}</h1>
         <div class="display-row">
-          <div class="field">{{i18n "admin.phone_gatekeeper.phone_number"}}</div>
+          <div class="field">{{i18n
+              "admin.phone_gatekeeper.phone_number"
+            }}</div>
           <div class="value">
             {{#if this.hasPhoneNumber}}
               {{this.phoneNumber}}
@@ -38,7 +40,9 @@ export default class PhoneGatekeeperUserDetails extends Component {
         </div>
         {{#if this.verifiedAt}}
           <div class="display-row">
-            <div class="field">{{i18n "admin.phone_gatekeeper.verified_at"}}</div>
+            <div class="field">{{i18n
+                "admin.phone_gatekeeper.verified_at"
+              }}</div>
             <div class="value">
               {{dFormatDate this.verifiedAt}}
             </div>

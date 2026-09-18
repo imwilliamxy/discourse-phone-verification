@@ -66,3 +66,78 @@
     }
   }
 }
+
+.phone-gatekeeper-dependency-callout {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  padding: 1em 1.25em;
+  border-radius: 8px;
+  max-width: 720px;
+
+  .callout-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    font-weight: 600;
+    margin-bottom: 0.4em;
+    font-size: var(--font-0);
+  }
+
+  .callout-body {
+    margin: 0;
+    line-height: 1.5;
+    font-size: var(--font-down-1);
+  }
+
+  .callout-actions {
+    margin-top: 0.75em;
+
+    .btn-dynamic-groups-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4em;
+    }
+  }
+
+  &.is-installed {
+    background-color: var(--success-low);
+    border: 1px solid var(--success-medium);
+
+    .callout-icon {
+      color: var(--success);
+    }
+  }
+
+  &.is-missing {
+    background-color: var(--tertiary-low);
+    border: 1px solid var(--tertiary-medium);
+
+    .callout-icon {
+      color: var(--tertiary-hover);
+    }
+  }
+}
+
+.phone-gatekeeper-plugin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  font-size: var(--font-down-2);
+  padding: 0.15em 0.5em;
+  border-radius: 4px;
+  margin-left: 0.5em;
+  vertical-align: middle;
+  font-weight: 500;
+
+  &.is-installed {
+    background-color: var(--success-low);
+    color: var(--success);
+    border: 1px solid var(--success-medium);
+  }
+
+  &.is-missing {
+    background-color: var(--tertiary-low);
+    color: var(--tertiary-hover);
+    border: 1px solid var(--tertiary-medium);
+  }
+}

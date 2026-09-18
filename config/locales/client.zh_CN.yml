@@ -34,3 +34,11 @@ zh_CN:
         group_status: "门禁用户组状态"
         in_group: "已加入专属受限用户组"
         not_in_group: "未加入专属用户组（未满足信任等级或未绑定）"
+        dynamic_groups:
+          installed_badge: "dynamic-groups 已就绪"
+          missing_badge: "未安装 dynamic-groups"
+          installed_title: "协同插件 discourse-dynamic-groups 已安装"
+          installed_description: "系统已检测到 discourse-dynamic-groups 插件。复合门禁与动态群组能力已就绪，您可以前往【管理后台 -> 用户组】配置基于手机号验证与信任等级（TL）的复合动态规则。"
+          missing_title: "提示：未检测到协同插件 discourse-dynamic-groups"
+          missing_description: "本插件的基础功能（+1 手机号验证与基础 phone_verified 用户组同步）已正常运作。若您需要基于多重条件限制板块准入（如自定义 SQL 规则、多重信任等级过滤等），推荐安装 discourse-dynamic-groups 插件。"
+          learn_more: "查看安装指引"

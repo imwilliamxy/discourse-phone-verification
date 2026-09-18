@@ -5,7 +5,8 @@ module ::PhoneGatekeeper
     def humanized_name(setting)
       setting_key = setting.to_s
       if I18n.exists?("site_settings.names.#{setting_key}")
-        translated = I18n.t("site_settings.names.#{setting_key}", default: "").presence
+        translated =
+          I18n.t("site_settings.names.#{setting_key}", default: "").presence
         return translated if translated
       end
 

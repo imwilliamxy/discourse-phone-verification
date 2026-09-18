@@ -24,7 +24,8 @@ RSpec.describe ProblemCheck::PhoneGatekeeperMissingDynamicGroups do
     end
 
     it "returns no problem when discourse-dynamic-groups is installed" do
-      fake_plugin = double("Plugin", name: "discourse-dynamic-groups")
+      fake_plugin =
+        instance_double(Plugin::Instance, name: "discourse-dynamic-groups")
       allow(Discourse).to receive(:plugins).and_return([fake_plugin])
       expect(check.call).to be_nil
     end
