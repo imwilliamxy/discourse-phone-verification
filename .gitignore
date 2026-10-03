@@ -38,3 +38,7 @@ NOTES.md
 scratch/
 GEMINI.md
 CHANGELOG.md
+
+# Local Testing Scripts & Utilities (ignored from git tracking)
+create_user.py
+scripts/
