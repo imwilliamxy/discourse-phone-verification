@@ -16,6 +16,11 @@ en:
       phone_verification_sms_daily_limit_per_user: "Phone Verification SMS Daily Limit Per User"
       phone_verification_verification_code_expiry_minutes: "Phone Verification Verification Code Expiry Minutes"
       phone_verification_debug_mode: "Phone Verification Debug Mode"
+      phone_verification_block_disposable: "Block Disposable Phone Numbers"
+      phone_verification_disposable_list_url: "Disposable Phone Numbers List URL"
+      phone_verification_custom_disposable_numbers: "Custom Blocked Phone Numbers"
+      phone_verification_block_voip: "Block VoIP Phone Numbers"
+      phone_verification_lookup_cache_ttl_days: "Line Type Lookup Cache TTL (Days)"
     enums:
       phone_verification_sms_provider:
         aws_sns: "Amazon SNS"
@@ -36,6 +41,11 @@ en:
       phone_verification_sms_daily_limit_per_user: "daily limit|rate limit|quota"
       phone_verification_verification_code_expiry_minutes: "expiry|expiration|timeout|code"
       phone_verification_debug_mode: "debug|test|bypass|verification code"
+      phone_verification_block_disposable: "disposable|temporary|burner|receive sms|block"
+      phone_verification_disposable_list_url: "disposable list|url|sync|download"
+      phone_verification_custom_disposable_numbers: "custom blacklist|blocked numbers|disposable"
+      phone_verification_block_voip: "voip|virtual|google voice|textnow|landline|block"
+      phone_verification_lookup_cache_ttl_days: "lookup cache|ttl|days|cache"
     phone_verification_enabled: "Enable the Phone Verification plugin (+1 SMS verification). Recommended to install discourse-dynamic-groups for advanced dynamic group gatekeeping."
     phone_verification_min_trust_level: "Minimum Trust Level required for category gatekeeper group access."
     phone_verification_group_name: "Name of the Discourse group to automatically manage for verified users."
@@ -51,6 +61,11 @@ en:
     phone_verification_sms_daily_limit_per_user: "Maximum SMS verification codes a user can request per day."
     phone_verification_verification_code_expiry_minutes: "Verification code expiration time in minutes."
     phone_verification_debug_mode: "Enable debug mode. When enabled, actual SMS dispatch is bypassed (no SMS gateway API calls and no daily limits), and any 6-digit verification code will be accepted (for development/testing only). Keep disabled in production!"
+    phone_verification_block_disposable: "Block temporary disposable phone numbers from public receive-SMS platforms using the open-source iP1SMS/disposable-phone-numbers database and custom blocklist."
+    phone_verification_disposable_list_url: "Remote URL of the disposable phone numbers JSON dataset (e.g. jsDelivr CDN or GitHub Raw)."
+    phone_verification_custom_disposable_numbers: "Custom list of blocked phone numbers separated by '|' (e.g. +14155550199|+14155550188)."
+    phone_verification_block_voip: "Block virtual phone numbers (VoIP, such as Google Voice, TextNow, Skype) and landlines using real-time carrier line-type intelligence."
+    phone_verification_lookup_cache_ttl_days: "Number of days to cache phone line type intelligence lookup results in Redis to avoid redundant API fees."
   dashboard:
     problem:
       phone_verification_missing_dynamic_groups: "The Phone Verification plugin is enabled, but the recommended companion plugin <a href='https://github.com/communiteq/discourse-dynamic-groups' target='_blank'>discourse-dynamic-groups</a> is not installed. Dynamic group calculation and advanced category gatekeeping rules will not be active."
@@ -65,3 +80,6 @@ en:
       invalid_code: "Invalid or expired verification code."
       too_many_attempts: "Too many failed attempts. Please request a new verification code."
       not_verified: "No active phone verification found for this account."
+      disposable_phone_blocked: "Disposable or temporary receive-SMS phone numbers are not allowed. Please use a personal mobile phone number."
+      voip_phone_blocked: "Virtual (VoIP) or landline phone numbers (such as Google Voice or TextNow) are not allowed. Please use a physical carrier mobile number."
+      lookup_failed: "Unable to verify carrier information for this phone number. Please try again later."

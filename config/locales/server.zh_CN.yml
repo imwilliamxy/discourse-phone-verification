@@ -16,6 +16,11 @@ zh_CN:
       phone_verification_sms_daily_limit_per_user: "单用户每日短信发送上限"
       phone_verification_verification_code_expiry_minutes: "短信验证码有效期（分钟）"
       phone_verification_debug_mode: "调试模式（跳过验证码真实比对）"
+      phone_verification_block_disposable: "拦截一次性接码手机号 (Disposable)"
+      phone_verification_disposable_list_url: "开源一次性接码号段同步源 URL"
+      phone_verification_custom_disposable_numbers: "自定义黑名单手机号列表"
+      phone_verification_block_voip: "拦截虚拟运营商号码 (VoIP)"
+      phone_verification_lookup_cache_ttl_days: "号码线路类型查询缓存天数"
     enums:
       phone_verification_sms_provider:
         aws_sns: "Amazon SNS"
@@ -36,6 +41,11 @@ zh_CN:
       phone_verification_sms_daily_limit_per_user: "每日上限|短信频次|防刷|限制"
       phone_verification_verification_code_expiry_minutes: "验证码有效期|超时|过期时间"
       phone_verification_debug_mode: "调试|debug|测试|验证码|跳过|bypass"
+      phone_verification_block_disposable: "接码|接码平台|临时手机号|一次性号码|黑名单|disposable"
+      phone_verification_disposable_list_url: "接码库|同步源|url|下载|disposable"
+      phone_verification_custom_disposable_numbers: "自定义黑名单|手动拉黑|屏蔽号码"
+      phone_verification_block_voip: "voip|虚拟号|google voice|textnow|座机|固定电话|拦截"
+      phone_verification_lookup_cache_ttl_days: "缓存|查询缓存|ttl|天数"
     phone_verification_enabled: "启用用户手机号验证插件（+1 短信验证）。推荐配合 discourse-dynamic-groups 插件使用以获得动态用户组与复合限制能力。"
     phone_verification_min_trust_level: "准入专属用户组所需的最低信任等级 (Trust Level)。"
     phone_verification_group_name: "受管的专属已验证手机号用户组名称。"
@@ -51,6 +61,11 @@ zh_CN:
     phone_verification_sms_daily_limit_per_user: "单用户每日最大可请求短信验证码条数。"
     phone_verification_verification_code_expiry_minutes: "短信验证码有效期（分钟）。"
     phone_verification_debug_mode: "启用调试模式。开启后，将跳过真实短信发送（不调用短信网关 API 且不限制单日发送次数），用户输入任意 6 位数字验证码均可通过验证（用于开发和测试环境）。生产环境请务必关闭此选项！"
+    phone_verification_block_disposable: "拦截来自公开免费接码平台的一次性临时手机号（基于开源 iP1SMS/disposable-phone-numbers 数据库及自定义黑名单）。"
+    phone_verification_disposable_list_url: "开源一次性接码号段 JSON 数据集的远程同步源 URL（支持 jsDelivr CDN 或 GitHub Raw）。"
+    phone_verification_custom_disposable_numbers: "管理员手动配置的黑名单手机号，多个号码用 '|' 分隔（例如：+14155550199|+14155550188）。"
+    phone_verification_block_voip: "拦截虚拟运营商号码（VoIP，如 Google Voice、TextNow、Skype）及固定电话（通过运营商线路类型实时检测）。"
+    phone_verification_lookup_cache_ttl_days: "号码线路类型查询结果在 Redis 中的缓存保留天数，避免重复调用外部付费 API。"
   dashboard:
     problem:
       phone_verification_missing_dynamic_groups: "手机号验证插件已启用，但尚未安装推荐的前置插件 <a href='https://github.com/communiteq/discourse-dynamic-groups' target='_blank'>discourse-dynamic-groups</a>。如需使用更灵活的动态用户组及复合板块限制规则，请在 app.yml 中添加该插件。"
@@ -65,3 +80,6 @@ zh_CN:
       invalid_code: "验证码错误或已失效。"
       too_many_attempts: "验证码尝试错误次数过多，请重新获取验证码。"
       not_verified: "当前账号尚未绑定任何有效手机号。"
+      disposable_phone_blocked: "不支持使用公开接码平台或一次性临时手机号，请使用个人实体手机号码。"
+      voip_phone_blocked: "不支持使用虚拟号码 (VoIP，如 Google Voice、TextNow) 或固定电话绑定，请使用实体移动运营商手机号。"
+      lookup_failed: "暂时无法校验该手机号的运营商信息，请稍后重试。"

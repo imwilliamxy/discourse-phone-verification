@@ -108,3 +108,41 @@ plugins:
     default: false
     client: false
     type: bool
+  phone_verification_block_disposable:
+    default: true
+    client: false
+    type: bool
+  phone_verification_disposable_list_url:
+    default: "https://cdn.jsdelivr.net/gh/iP1SMS/disposable-phone-numbers@master/number-list.json"
+    type: string
+    depends_on:
+      - phone_verification_block_disposable
+    depends_on_values:
+      phone_verification_block_disposable:
+        - true
+    depends_behavior: "hidden"
+  phone_verification_custom_disposable_numbers:
+    default: ""
+    type: list
+    list_type: compact
+    depends_on:
+      - phone_verification_block_disposable
+    depends_on_values:
+      phone_verification_block_disposable:
+        - true
+    depends_behavior: "hidden"
+  phone_verification_block_voip:
+    default: false
+    client: false
+    type: bool
+  phone_verification_lookup_cache_ttl_days:
+    default: 30
+    type: integer
+    min: 1
+    max: 365
+    depends_on:
+      - phone_verification_block_voip
+    depends_on_values:
+      phone_verification_block_voip:
+        - true
+    depends_behavior: "hidden"
