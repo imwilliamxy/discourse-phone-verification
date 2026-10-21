@@ -45,6 +45,16 @@ module PhoneVerification
         )
       end
 
+      # Check disposable phone number blacklist (Layer 1)
+      if DisposablePhoneChecker.disposable?(formatted_phone)
+        return(
+          {
+            success: false,
+            error: I18n.t("phone_verification.errors.disposable_phone_blocked")
+          }
+        )
+      end
+
       # Check cooldown
       cooldown_key = "phone_verification:cooldown:#{@user.id}"
       remaining_ttl = Discourse.redis.ttl(cooldown_key)
@@ -76,6 +86,12 @@ module PhoneVerification
             }
           )
         end
+      end
+
+      # Check VoIP / Landline line type intelligence (Layer 2)
+      line_check = LineTypeChecker.check(formatted_phone)
+      unless line_check[:allowed]
+        return { success: false, error: line_check[:error] }
       end
 
       # Generate 6-digit OTP
@@ -143,6 +159,16 @@ module PhoneVerification
           {
             success: false,
             error: I18n.t("phone_verification.errors.phone_already_used")
+          }
+        )
+      end
+
+      # Reject disposable phone numbers even in verify step
+      if DisposablePhoneChecker.disposable?(formatted_phone)
+        return(
+          {
+            success: false,
+            error: I18n.t("phone_verification.errors.disposable_phone_blocked")
           }
         )
       end

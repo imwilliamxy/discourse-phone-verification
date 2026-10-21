@@ -75,6 +75,81 @@ RSpec.describe PhoneVerification::VerificationService do
         expect(result[:cooldown_seconds]).to eq(60)
       end
     end
+
+    context "when phone number is disposable" do
+      before do
+        SiteSetting.phone_verification_block_disposable = true
+        Discourse.redis.sadd(
+          PhoneVerification::DisposablePhoneChecker::REDIS_SET_KEY,
+          "14155552671"
+        )
+      end
+
+      it "rejects sending code for disposable phone number" do
+        result = described_class.send_code(user: user, phone_number: phone)
+        expect(result[:success]).to be false
+        expect(result[:error]).to eq(
+          I18n.t("phone_verification.errors.disposable_phone_blocked")
+        )
+      end
+
+      it "rejects verifying code for disposable phone number even in debug mode" do
+        SiteSetting.phone_verification_debug_mode = true
+        result =
+          described_class.verify_code(
+            user: user,
+            phone_number: phone,
+            code: "123456"
+          )
+        expect(result[:success]).to be false
+        expect(result[:error]).to eq(
+          I18n.t("phone_verification.errors.disposable_phone_blocked")
+        )
+      end
+    end
+
+    context "when VoIP blocking is enabled" do
+      let(:mock_lookup) do
+        instance_double(PhoneVerification::LookupProvider::Base)
+      end
+
+      before do
+        SiteSetting.phone_verification_block_voip = true
+        SiteSetting.phone_verification_debug_mode = false
+        allow(PhoneVerification::LookupProvider::Factory).to receive(
+          :get
+        ).and_return(mock_lookup)
+      end
+
+      it "rejects sending SMS when number is identified as VoIP" do
+        allow(mock_lookup).to receive(:lookup).with(phone).and_return(
+          PhoneVerification::LookupProvider::Result.new(
+            success: true,
+            line_type: "nonFixedVoip",
+            carrier_name: "Google Voice"
+          )
+        )
+
+        result = described_class.send_code(user: user, phone_number: phone)
+        expect(result[:success]).to be false
+        expect(result[:error]).to eq(
+          I18n.t("phone_verification.errors.voip_phone_blocked")
+        )
+      end
+
+      it "sends SMS when number is identified as mobile" do
+        allow(mock_lookup).to receive(:lookup).with(phone).and_return(
+          PhoneVerification::LookupProvider::Result.new(
+            success: true,
+            line_type: "mobile",
+            carrier_name: "T-Mobile"
+          )
+        )
+
+        result = described_class.send_code(user: user, phone_number: phone)
+        expect(result[:success]).to be true
+      end
+    end
   end
 
   describe "#verify_code" do
