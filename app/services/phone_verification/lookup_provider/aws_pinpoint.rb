@@ -19,7 +19,8 @@ module PhoneVerification
           return(
             Result.new(
               success: false,
-              error_message: "AWS credentials must be configured for Pinpoint Lookup."
+              error_message:
+                "AWS credentials must be configured for Pinpoint Lookup."
             )
           )
         end

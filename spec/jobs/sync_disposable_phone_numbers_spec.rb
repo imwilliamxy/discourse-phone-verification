@@ -13,20 +13,24 @@ RSpec.describe Jobs::SyncDisposablePhoneNumbers do
 
   it "does not sync when plugin is disabled" do
     SiteSetting.phone_verification_enabled = false
-    allow(PhoneVerification::DisposablePhoneChecker).to receive(:fetch_and_sync!)
+    allow(PhoneVerification::DisposablePhoneChecker).to receive(
+      :fetch_and_sync!
+    )
     job.execute({})
-    expect(
-      PhoneVerification::DisposablePhoneChecker
-    ).not_to have_received(:fetch_and_sync!)
+    expect(PhoneVerification::DisposablePhoneChecker).not_to have_received(
+      :fetch_and_sync!
+    )
   end
 
   it "does not sync when disposable blocking is disabled" do
     SiteSetting.phone_verification_block_disposable = false
-    allow(PhoneVerification::DisposablePhoneChecker).to receive(:fetch_and_sync!)
+    allow(PhoneVerification::DisposablePhoneChecker).to receive(
+      :fetch_and_sync!
+    )
     job.execute({})
-    expect(
-      PhoneVerification::DisposablePhoneChecker
-    ).not_to have_received(:fetch_and_sync!)
+    expect(PhoneVerification::DisposablePhoneChecker).not_to have_received(
+      :fetch_and_sync!
+    )
   end
 
   it "calls DisposablePhoneChecker.fetch_and_sync! when enabled" do
@@ -35,8 +39,8 @@ RSpec.describe Jobs::SyncDisposablePhoneNumbers do
     ).and_return({ success: true, count: 100 })
 
     job.execute({})
-    expect(
-      PhoneVerification::DisposablePhoneChecker
-    ).to have_received(:fetch_and_sync!)
+    expect(PhoneVerification::DisposablePhoneChecker).to have_received(
+      :fetch_and_sync!
+    )
   end
 end

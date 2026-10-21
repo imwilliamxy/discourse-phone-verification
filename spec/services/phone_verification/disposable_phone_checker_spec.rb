@@ -45,7 +45,9 @@ RSpec.describe PhoneVerification::DisposablePhoneChecker do
       expect(described_class.disposable?("+12012018360")).to be true
       expect(described_class.disposable?("+12012018710")).to be true
       expect(Discourse.redis.scard(described_class::REDIS_SET_KEY)).to eq(2)
-      expect(Discourse.redis.get(described_class::REDIS_COUNT_KEY).to_i).to eq(2)
+      expect(Discourse.redis.get(described_class::REDIS_COUNT_KEY).to_i).to eq(
+        2
+      )
       expect(Discourse.redis.ttl(described_class::REDIS_SET_KEY)).to be_between(
         1,
         described_class::REDIS_TTL_SECONDS
@@ -59,9 +61,15 @@ RSpec.describe PhoneVerification::DisposablePhoneChecker do
       expect(Discourse.redis.exists?(described_class::REDIS_SET_KEY)).to be true
 
       described_class.clear_cache!
-      expect(Discourse.redis.exists?(described_class::REDIS_SET_KEY)).to be false
-      expect(Discourse.redis.exists?(described_class::REDIS_COUNT_KEY)).to be false
-      expect(Discourse.redis.exists?(described_class::REDIS_SYNCED_AT_KEY)).to be false
+      expect(
+        Discourse.redis.exists?(described_class::REDIS_SET_KEY)
+      ).to be false
+      expect(
+        Discourse.redis.exists?(described_class::REDIS_COUNT_KEY)
+      ).to be false
+      expect(
+        Discourse.redis.exists?(described_class::REDIS_SYNCED_AT_KEY)
+      ).to be false
     end
   end
 

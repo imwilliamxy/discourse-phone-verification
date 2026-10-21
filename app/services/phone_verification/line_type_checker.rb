@@ -39,8 +39,10 @@ module PhoneVerification
         )
       end
 
-      ttl_days =
-        [SiteSetting.phone_verification_lookup_cache_ttl_days.to_i, 1].max
+      ttl_days = [
+        SiteSetting.phone_verification_lookup_cache_ttl_days.to_i,
+        1
+      ].max
       cache_payload = {
         line_type: result.line_type,
         carrier_name: result.carrier_name,

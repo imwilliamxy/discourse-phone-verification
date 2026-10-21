@@ -95,7 +95,7 @@ RSpec.describe PhoneVerification::LookupProvider::TwilioLookup do
         phone_number: phone,
         valid: true,
         line_type_intelligence: {
-          error_code: 60601,
+          error_code: 60_601,
           type: nil
         }
       }.to_json
@@ -110,10 +110,7 @@ RSpec.describe PhoneVerification::LookupProvider::TwilioLookup do
     stub_request(
       :get,
       "https://lookups.twilio.com/v2/PhoneNumbers/%2B14155552671?Fields=line_type_intelligence"
-    ).to_return(
-      status: 401,
-      body: { message: "Authenticate" }.to_json
-    )
+    ).to_return(status: 401, body: { message: "Authenticate" }.to_json)
 
     result = provider.lookup(phone)
     expect(result.success?).to be false

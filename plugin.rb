@@ -34,7 +34,9 @@ after_initialize do
       unless Group.method_defined?(:get_depending_group_ids)
         class ::Group
           def get_depending_group_ids
-            GroupCustomField.where(name: "depends_on_#{self.name.downcase}").pluck(:group_id)
+            GroupCustomField.where(
+              name: "depends_on_#{name.downcase}"
+            ).pluck(:group_id)
           end
         end
       end
@@ -45,12 +47,13 @@ after_initialize do
             return unless defined?(::DiscourseDynamicGroups::RuleEngine)
             engine = ::DiscourseDynamicGroups::RuleEngine.new
             membership = engine.evaluate_rule(user, dynamic_rule)
-            is_member = GroupUser.where(user_id: user.id).where(group_id: self.id).exists?
+            is_member =
+              GroupUser.where(user_id: user.id).where(group_id: id).exists?
             if is_member && !membership
-              self.remove(user)
+              remove(user)
               false
             elsif !is_member && membership
-              self.add(user)
+              add(user)
               true
             end
           end
@@ -60,7 +63,9 @@ after_initialize do
       unless Badge.method_defined?(:get_depending_group_ids)
         class ::Badge
           def get_depending_group_ids
-            GroupCustomField.where(name: "depends_on_badge:#{self.id}").pluck(:group_id)
+            GroupCustomField.where(name: "depends_on_badge:#{id}").pluck(
+              :group_id
+            )
           end
         end
       end
@@ -125,9 +130,10 @@ after_initialize do
        ].include?(setting_sym)
       if SiteSetting.phone_verification_enabled &&
            SiteSetting.phone_verification_block_disposable
-        if Discourse.redis.scard(
-             PhoneVerification::DisposablePhoneChecker::REDIS_SET_KEY
-           ).to_i == 0
+        if Discourse
+             .redis
+             .scard(PhoneVerification::DisposablePhoneChecker::REDIS_SET_KEY)
+             .to_i == 0
           Jobs.enqueue(:sync_disposable_phone_numbers)
         end
       else

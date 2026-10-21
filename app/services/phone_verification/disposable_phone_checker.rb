@@ -51,22 +51,23 @@ module PhoneVerification
 
     def self.fetch_and_sync!
       primary_url =
-        SiteSetting.phone_verification_disposable_list_url.to_s.strip.presence ||
-          FALLBACK_URL
+        SiteSetting
+          .phone_verification_disposable_list_url
+          .to_s
+          .strip
+          .presence || FALLBACK_URL
       urls = [primary_url, FALLBACK_URL].uniq
 
       last_error = nil
       urls.each do |url|
-        begin
-          body = download_json(url)
-          count = sync_from_json!(body)
-          return { success: true, count: count, source: url }
-        rescue StandardError => e
-          last_error = e.message
-          Rails.logger.warn(
-            "[PhoneVerification] Failed to sync disposable numbers from #{url}: #{e.message}"
-          )
-        end
+        body = download_json(url)
+        count = sync_from_json!(body)
+        return { success: true, count: count, source: url }
+      rescue StandardError => e
+        last_error = e.message
+        Rails.logger.warn(
+          "[PhoneVerification] Failed to sync disposable numbers from #{url}: #{e.message}"
+        )
       end
 
       { success: false, error: last_error }
@@ -77,7 +78,9 @@ module PhoneVerification
       raise ArgumentError, "Expected JSON object" unless parsed.is_a?(Hash)
 
       us_numbers =
-        parsed.keys.select { |k| k.is_a?(String) && k.match?(/\A1[2-9]\d{9}\z/) }
+        parsed.keys.select do |k|
+          k.is_a?(String) && k.match?(/\A1[2-9]\d{9}\z/)
+        end
 
       Discourse.redis.del(REDIS_TMP_KEY)
       Discourse.redis.del(REDIS_SET_KEY)

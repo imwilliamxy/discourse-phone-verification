@@ -111,31 +111,44 @@ RSpec.describe PhoneVerification::LocalizedLabelFormatter do
       expect(SiteSetting.phone_verification_block_voip).to eq(false)
       expect(SiteSetting.phone_verification_lookup_cache_ttl_days).to eq(30)
 
-      disposable_url_setting = find_setting(:phone_verification_disposable_list_url)
-      expect(disposable_url_setting[:depends_on]).to eq([:phone_verification_block_disposable])
+      disposable_url_setting =
+        find_setting(:phone_verification_disposable_list_url)
+      expect(disposable_url_setting[:depends_on]).to eq(
+        [:phone_verification_block_disposable]
+      )
       expect(disposable_url_setting[:depends_behavior]).to eq(:hidden)
 
       voip_ttl_setting = find_setting(:phone_verification_lookup_cache_ttl_days)
-      expect(voip_ttl_setting[:depends_on]).to eq([:phone_verification_block_voip])
+      expect(voip_ttl_setting[:depends_on]).to eq(
+        [:phone_verification_block_voip]
+      )
       expect(voip_ttl_setting[:depends_behavior]).to eq(:hidden)
     end
 
     it "provides localized names for disposable and VoIP settings in zh_CN and en" do
       I18n.with_locale(:zh_CN) do
         expect(
-          SiteSettings::LabelFormatter.humanized_name(:phone_verification_block_disposable)
+          SiteSettings::LabelFormatter.humanized_name(
+            :phone_verification_block_disposable
+          )
         ).to eq("拦截一次性接码手机号 (Disposable)")
         expect(
-          SiteSettings::LabelFormatter.humanized_name(:phone_verification_block_voip)
+          SiteSettings::LabelFormatter.humanized_name(
+            :phone_verification_block_voip
+          )
         ).to eq("拦截虚拟运营商号码 (VoIP)")
       end
 
       I18n.with_locale(:en) do
         expect(
-          SiteSettings::LabelFormatter.humanized_name(:phone_verification_block_disposable)
+          SiteSettings::LabelFormatter.humanized_name(
+            :phone_verification_block_disposable
+          )
         ).to eq("Block Disposable Phone Numbers")
         expect(
-          SiteSettings::LabelFormatter.humanized_name(:phone_verification_block_voip)
+          SiteSettings::LabelFormatter.humanized_name(
+            :phone_verification_block_voip
+          )
         ).to eq("Block VoIP Phone Numbers")
       end
     end

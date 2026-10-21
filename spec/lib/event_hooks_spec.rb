@@ -106,7 +106,10 @@ RSpec.describe PhoneVerification do
     end
 
     it "calls sync_user when phone_verification_enabled is true" do
-      expect(PhoneVerification::GroupSyncService).to receive(:sync_user).with(user).exactly(3).times
+      expect(PhoneVerification::GroupSyncService).to receive(:sync_user)
+        .with(user)
+        .exactly(3)
+        .times
 
       DiscourseEvent.trigger(:user_demoted, user: user)
       DiscourseEvent.trigger(:user_suspended, user: user)

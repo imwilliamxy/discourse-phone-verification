@@ -59,7 +59,7 @@ module PhoneVerification
           # Defensive guard against sub-package errors or unprovisioned account entitlements
           if sub_error.present? || line_type.blank?
             err_msg =
-              "Twilio Lookup intelligence unavailable: #{sub_error.presence || 'missing line type'}"
+              "Twilio Lookup intelligence unavailable: #{sub_error.presence || "missing line type"}"
             Rails.logger.warn(
               "[PhoneVerification] #{err_msg} for #{phone_number}"
             )

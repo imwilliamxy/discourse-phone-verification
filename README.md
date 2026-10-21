@@ -18,7 +18,10 @@ Discourse 手机号验证插件，支持美国（+1）手机号短信验证码�
    - **基础同步**：插件内置轻量级加组服务，支持将满足条件的用户自动同步至 `phone_verified` 用户组。
    - **动态规则（推荐）**：与 [discourse-dynamic-groups](https://github.com/communiteq/discourse-dynamic-groups) 深度配合，支持通过灵活的 SQL 规则构建诸如「Trust Level X 且已验证手机号」的复合限制策略。
    - **原生板块权限**：管理员通过 Discourse 原生 `Category -> Security` 权限为用户组分配 `See / Reply / Create` 访问控制。
-4. **可扩展 SMS Provider 架构**：
+4. **防接码小号与虚拟号码 (VoIP) 拦截**：
+   - **一次性接码号拦截 (Disposable)**：内置开源接码数据库（基于 `iP1SMS/disposable-phone-numbers` 每日同步至 Redis Set）与自定义黑名单，以 $O(1)$ 速度在短信发送前直接拦截廉价接码平台号码，零 API 费用。
+   - **虚拟运营商 (VoIP) 与固定电话拦截**：支持通过 Twilio Lookup v2 或 AWS Pinpoint 实时检测号码运营商线路类型（Line Type），仅放行实体移动卡（`mobile` / `prepaid`），拦截 Google Voice、TextNow、Skype 等虚拟号，并对查询结果进行 Redis 长期缓存（默认 30 天）以严格控制 API 成本。
+5. **可扩展 SMS Provider 架构**：
    - 抽象通用短信适配器接口，已实现 **AWS SNS** 与 **Twilio**，并支持灵活扩展。
 
 ---
@@ -73,6 +76,11 @@ hooks:
 | `phone_verification_sms_daily_limit_per_user` | `5` | 单用户每日允许发送验证码最大次数 |
 | `phone_verification_verification_code_expiry_minutes` | `10` | 验证码有效时长（分钟） |
 | `phone_verification_debug_mode` | `false` | 调试模式开关（开启后跳过真实短信发送与单日发送限制，任意 6 位数字均可通过） |
+| `phone_verification_block_disposable` | `true` | 启用一次性接码平台手机号拦截 |
+| `phone_verification_disposable_list_url` | jsDelivr URL | 开源一次性接码号段数据源 URL (iP1SMS) |
+| `phone_verification_custom_disposable_numbers` | `""` | 管理员自定义黑名单手机号列表（`\|` 分隔） |
+| `phone_verification_block_voip` | `false` | 启用虚拟运营商 (VoIP) 及固定电话拦截 |
+| `phone_verification_lookup_cache_ttl_days` | `30` | 线路类型查询结果在 Redis 中的缓存保留天数 |
 
 ---
 
