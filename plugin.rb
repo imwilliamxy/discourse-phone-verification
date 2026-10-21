@@ -26,6 +26,8 @@ after_initialize do
   require_relative "app/services/problem_check/phone_verification_missing_dynamic_groups"
   register_problem_check ProblemCheck::PhoneVerificationMissingDynamicGroups
 
+  require_relative "app/jobs/scheduled/sync_disposable_phone_numbers"
+
   # Defensive reloader compatibility for dynamic groups during Rails code reloads
   ActiveSupport::Reloader.to_prepare do
     if defined?(::DiscourseDynamicGroups)
@@ -108,12 +110,29 @@ after_initialize do
   end
 
   on(:site_setting_changed) do |name, _old_value, _new_value|
+    setting_sym = name.to_sym
     if %i[
          phone_verification_enabled
          phone_verification_min_trust_level
          phone_verification_group_name
-       ].include?(name.to_sym)
+       ].include?(setting_sym)
       PhoneVerification::GroupSyncService.sync_all
+    end
+
+    if %i[
+         phone_verification_enabled
+         phone_verification_block_disposable
+       ].include?(setting_sym)
+      if SiteSetting.phone_verification_enabled &&
+           SiteSetting.phone_verification_block_disposable
+        if Discourse.redis.scard(
+             PhoneVerification::DisposablePhoneChecker::REDIS_SET_KEY
+           ).to_i == 0
+          Jobs.enqueue(:sync_disposable_phone_numbers)
+        end
+      else
+        PhoneVerification::DisposablePhoneChecker.clear_cache!
+      end
     end
   end
 
