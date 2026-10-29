@@ -9,8 +9,8 @@ export default class PhoneVerificationDynamicGroupsBadge extends Component {
   get isThisPlugin() {
     const plugin = this.args.outletArgs?.plugin;
     return (
-      plugin?.name === "uscardforum-phone-verification" ||
-      plugin?.id === "uscardforum-phone-verification"
+      plugin?.name === "discourse-phone-verification" ||
+      plugin?.id === "discourse-phone-verification"
     );
   }
 

@@ -1,4 +1,4 @@
-# Discourse Phone Verification Plugin (`uscardforum-phone-verification`)
+# Discourse Phone Verification Plugin (`discourse-phone-verification`)
 
 Discourse 手机号验证插件，支持美国（+1）手机号短信验证码绑定、隐私脱敏、信任等级（Trust Level）联动以及板块准入自动用户组同步。
 
@@ -46,7 +46,7 @@ hooks:
           # 1. 动态用户组插件（推荐先引入）
           - git clone https://github.com/communiteq/discourse-dynamic-groups.git
           # 2. 手机号验证插件
-          - git clone https://github.com/uscardforum/uscardforum-phone-verification.git
+          - git clone https://github.com/imwilliamxy/discourse-phone-verification.git
 ```
 
 添加后，在 `/var/discourse` 目录下重新构建容器：
@@ -175,7 +175,7 @@ rm -rf data/postgres/*
 > 若无需删除容器，可直接执行 `./bin/docker/reset_db`。
 
 ### 6.2 插件加载与迁移
-1. **自动加载**：只要插件目录位于 `plugins/uscardforum-phone-verification`，容器启动时便会自动加载。
+1. **自动加载**：只要插件目录位于 `plugins/discourse-phone-verification`，容器启动时便会自动加载。
 2. **执行数据库迁移**：
    ```bash
    ./bin/docker/rake db:migrate
@@ -195,10 +195,10 @@ rm -rf data/postgres/*
 ### 6.4 运行测试与代码检查
 ```bash
 # 运行插件全部 RSpec 测试套件
-LOAD_PLUGINS=1 ./bin/docker/rspec plugins/uscardforum-phone-verification/spec
+LOAD_PLUGINS=1 ./bin/docker/rspec plugins/discourse-phone-verification/spec
 
 # 运行前端 Lint 检查
-./bin/docker/exec bin/lint plugins/uscardforum-phone-verification
+./bin/docker/exec bin/lint plugins/discourse-phone-verification
 ```
 
 ---

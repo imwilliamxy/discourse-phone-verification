@@ -64,32 +64,6 @@
         margin: 0;
       }
     }
-
-    .phone-input {
-      display: flex;
-      align-items: stretch;
-      max-width: 260px;
-
-      &__prefix {
-        display: flex;
-        align-items: center;
-        padding: 0 0.65em;
-        border: 1px solid var(--primary-low-mid);
-        border-right: none;
-        border-radius: var(--d-input-border-radius, 4px) 0 0
-          var(--d-input-border-radius, 4px);
-        background-color: var(--primary-very-low);
-        color: var(--primary-medium);
-      }
-
-      input.phone-input__number {
-        flex: 1;
-        min-width: 0;
-        margin: 0;
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-      }
-    }
   }
 }
 
@@ -186,4 +160,63 @@
   &__dismiss {
     margin-left: auto;
   }
+}
+
+// Shared by the preferences box and the admin lookup page
+.phone-input {
+  display: flex;
+  align-items: stretch;
+  max-width: 260px;
+
+  &__prefix {
+    display: flex;
+    align-items: center;
+    padding: 0 0.65em;
+    border: 1px solid var(--primary-low-mid);
+    border-right: none;
+    border-radius: var(--d-input-border-radius, 4px) 0 0
+      var(--d-input-border-radius, 4px);
+    background-color: var(--primary-very-low);
+    color: var(--primary-medium);
+  }
+
+  input.phone-input__number {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+}
+
+.phone-verification-lookup {
+  max-width: 640px;
+
+  &__form {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin: 1em 0;
+  }
+
+  &__results {
+    width: 100%;
+
+    td {
+      padding: 0.5em 0.75em 0.5em 0;
+    }
+  }
+
+  &__active {
+    color: var(--success);
+    font-weight: 600;
+  }
+
+  &__empty {
+    color: var(--primary-medium);
+  }
+}
+
+.phone-verification-admin-details .controls {
+  margin-left: 1em;
 }
