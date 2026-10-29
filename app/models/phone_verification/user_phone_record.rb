@@ -16,6 +16,22 @@ module PhoneVerification
 
     scope :active, -> { where(active: true) }
 
+    # +1 also covers Canada, the Caribbean NANP countries (common SMS toll
+    # fraud destinations), toll-free, premium-rate and non-geographic codes.
+    # US territories (PR, USVI, Guam, NMI, American Samoa) stay allowed.
+    NON_US_AREA_CODES = %w[
+      204 226 236 249 250 257 263 289 306 343 354 365 367 368 382 387 403 416
+      418 428 431 437 438 450 460 468 474 506 514 519 548 579 581 584 587 600
+      604 613 622 633 639 644 647 655 672 677 683 688 705 709 742 753 778 780
+      782 807 819 825 867 873 879 902 905 942
+      242 246 264 268 284 345 441 473 649 658 664 721 758 767 784 809 829 849
+      868 869 876
+      800 822 833 844 855 866 877 880 881 882 883 884 885 886 887 888 889
+      456 500 521 522 523 524 525 526 527 528 529 532 533 535 538 542 543 544
+      545 546 547 549 550 552 553 554 556 558 566 569 577 578 588 589 700 710
+      900
+    ].to_set.freeze
+
     def self.normalize(raw_phone)
       digits = raw_phone.to_s.gsub(/\D/, "")
       if digits.length == 10
@@ -28,7 +44,14 @@ module PhoneVerification
     end
 
     def self.valid_us_phone?(formatted_phone)
-      !!(formatted_phone =~ /^\+1[2-9]\d{9}$/)
+      match = formatted_phone.to_s.match(/\A\+1([2-9]\d{2})[2-9]\d{6}\z/)
+      return false unless match
+
+      area_code = match[1]
+      # N9X area codes are reserved and N11 are service codes
+      return false if area_code[1] == "9" || area_code.end_with?("11")
+
+      NON_US_AREA_CODES.exclude?(area_code)
     end
 
     def deactivate!

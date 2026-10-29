@@ -28,7 +28,8 @@ module PhoneVerification
       result =
         VerificationService.send_code(
           user: current_user,
-          phone_number: params[:phone_number]
+          phone_number: params[:phone_number],
+          ip_address: request.remote_ip
         )
 
       if result[:success]

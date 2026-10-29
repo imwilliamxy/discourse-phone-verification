@@ -5,8 +5,8 @@ module PhoneVerification
     COOLDOWN_SECONDS = 60
     MAX_FAILED_ATTEMPTS = 5
 
-    def self.send_code(user:, phone_number:)
-      new(user: user).send_code(phone_number)
+    def self.send_code(user:, phone_number:, ip_address: nil)
+      new(user: user, ip_address: ip_address).send_code(phone_number)
     end
 
     def self.verify_code(user:, phone_number:, code:)
@@ -17,11 +17,27 @@ module PhoneVerification
       new(user: user).unbind
     end
 
-    def initialize(user:)
+    def initialize(user:, ip_address: nil)
       @user = user
+      @ip_address = ip_address
     end
 
     def send_code(raw_phone)
+      min_trust_level =
+        SiteSetting.phone_verification_send_code_min_trust_level.to_i
+      if !@user.staff? && @user.trust_level < min_trust_level
+        return(
+          {
+            success: false,
+            error:
+              I18n.t(
+                "phone_verification.errors.trust_level_too_low",
+                trust_level: min_trust_level
+              )
+          }
+        )
+      end
+
       formatted_phone = UserPhoneRecord.normalize(raw_phone)
       unless UserPhoneRecord.valid_us_phone?(formatted_phone)
         return(
@@ -32,18 +48,9 @@ module PhoneVerification
         )
       end
 
-      # Check if phone is already taken by another active user
-      if UserPhoneRecord
-           .where(phone_number: formatted_phone, active: true)
-           .where.not(user_id: @user.id)
-           .exists?
-        return(
-          {
-            success: false,
-            error: I18n.t("phone_verification.errors.phone_already_used")
-          }
-        )
-      end
+      # Whether the number already belongs to another account is only reported
+      # by verify_code, after the code proves the requester owns the number.
+      # Reporting it here would let anyone probe who has a forum account.
 
       # Check disposable phone number blacklist (Layer 1)
       if DisposablePhoneChecker.disposable?(formatted_phone)
@@ -55,10 +62,15 @@ module PhoneVerification
         )
       end
 
-      # Check cooldown
+      # Take the cooldown atomically so concurrent requests can't all pass it
       cooldown_key = "phone_verification:cooldown:#{@user.id}"
-      remaining_ttl = Discourse.redis.ttl(cooldown_key)
-      if remaining_ttl > 0
+      unless Discourse.redis.set(
+               cooldown_key,
+               "1",
+               ex: COOLDOWN_SECONDS,
+               nx: true
+             )
+        remaining_ttl = [Discourse.redis.ttl(cooldown_key), 1].max
         return(
           {
             success: false,
@@ -71,14 +83,15 @@ module PhoneVerification
         )
       end
 
-      # Check daily limits (bypassed in debug mode)
-      unless SiteSetting.phone_verification_debug_mode
-        today = Time.zone.now.strftime("%Y%m%d")
-        user_daily_key = "phone_verification:daily:#{@user.id}:#{today}"
-        current_user_count = Discourse.redis.get(user_daily_key).to_i
-        limit = SiteSetting.phone_verification_sms_daily_limit_per_user
-
-        if current_user_count >= limit
+      sent = false
+      begin
+        # Check daily limits (bypassed in debug mode)
+        daily_limits = daily_limits_for(formatted_phone)
+        limit_reached =
+          daily_limits.any? do |key, limit|
+            Discourse.redis.get(key).to_i >= limit
+          end
+        if limit_reached && !PhoneVerification.debug_mode?
           return(
             {
               success: false,
@@ -86,54 +99,64 @@ module PhoneVerification
             }
           )
         end
-      end
 
-      # Check VoIP / Landline line type intelligence (Layer 2)
-      line_check = LineTypeChecker.check(formatted_phone)
-      unless line_check[:allowed]
-        return { success: false, error: line_check[:error] }
-      end
-
-      # Generate 6-digit OTP
-      code = format("%06d", SecureRandom.random_number(1_000_000))
-      expiry_minutes =
-        SiteSetting.phone_verification_verification_code_expiry_minutes
-
-      # Send SMS (skipped in debug mode)
-      if SiteSetting.phone_verification_debug_mode
-        Rails.logger.info(
-          "[PhoneVerification DEBUG] Generated verification code #{code} for #{formatted_phone} (SMS sending skipped)"
-        )
-      else
-        site_title = SiteSetting.title
-        sms_text =
-          I18n.t(
-            "phone_verification.sms_message",
-            site_title: site_title,
-            code: code,
-            expiry: expiry_minutes
-          )
-
-        provider = SmsProvider::Factory.get
-        result = provider.send_sms(to: formatted_phone, message: sms_text)
-
-        unless result.success?
-          return { success: false, error: result.error_message }
+        # Check VoIP / Landline line type intelligence (Layer 2)
+        line_check = LineTypeChecker.check(formatted_phone)
+        unless line_check[:allowed]
+          return { success: false, error: line_check[:error] }
         end
-      end
 
-      # Save to Redis
-      code_key = "phone_verification:code:#{@user.id}"
-      payload = { phone: formatted_phone, code: code, attempts: 0 }.to_json
-      Discourse.redis.setex(code_key, expiry_minutes * 60, payload)
+        # Generate 6-digit OTP
+        code = format("%06d", SecureRandom.random_number(1_000_000))
+        expiry_minutes =
+          SiteSetting.phone_verification_verification_code_expiry_minutes
 
-      # Set cooldown & increment daily count
-      Discourse.redis.setex(cooldown_key, COOLDOWN_SECONDS, "1")
-      unless SiteSetting.phone_verification_debug_mode
-        today = Time.zone.now.strftime("%Y%m%d")
-        user_daily_key = "phone_verification:daily:#{@user.id}:#{today}"
-        Discourse.redis.incr(user_daily_key)
-        Discourse.redis.expire(user_daily_key, 86_400)
+        # Send SMS (skipped in debug mode)
+        if PhoneVerification.debug_mode?
+          Rails.logger.info(
+            "[PhoneVerification DEBUG] Generated verification code #{code} for #{formatted_phone} (SMS sending skipped)"
+          )
+        else
+          site_title = SiteSetting.title
+          sms_text =
+            I18n.t(
+              "phone_verification.sms_message",
+              site_title: site_title,
+              code: code,
+              expiry: expiry_minutes
+            )
+
+          provider = SmsProvider::Factory.get
+          result = provider.send_sms(to: formatted_phone, message: sms_text)
+
+          # Provider errors can contain account IDs and IAM user names; the
+          # providers already log the details, users only get a generic message.
+          unless result.success?
+            return(
+              {
+                success: false,
+                error: I18n.t("phone_verification.errors.sms_send_failed")
+              }
+            )
+          end
+        end
+
+        # Save to Redis
+        code_key = "phone_verification:code:#{@user.id}"
+        payload = { phone: formatted_phone, code: code, attempts: 0 }.to_json
+        Discourse.redis.setex(code_key, expiry_minutes * 60, payload)
+
+        # Increment daily counts
+        unless PhoneVerification.debug_mode?
+          daily_limits.each_key do |key|
+            Discourse.redis.incr(key)
+            Discourse.redis.expire(key, 86_400)
+          end
+        end
+
+        sent = true
+      ensure
+        Discourse.redis.del(cooldown_key) unless sent
       end
 
       { success: true, cooldown_seconds: COOLDOWN_SECONDS }
@@ -146,19 +169,6 @@ module PhoneVerification
           {
             success: false,
             error: I18n.t("phone_verification.errors.invalid_phone_number")
-          }
-        )
-      end
-
-      # Check if phone is already taken by another active user
-      if UserPhoneRecord
-           .where(phone_number: formatted_phone, active: true)
-           .where.not(user_id: @user.id)
-           .exists?
-        return(
-          {
-            success: false,
-            error: I18n.t("phone_verification.errors.phone_already_used")
           }
         )
       end
@@ -176,7 +186,7 @@ module PhoneVerification
       cleaned_code = code.to_s.strip
       code_key = "phone_verification:code:#{@user.id}"
 
-      if SiteSetting.phone_verification_debug_mode
+      if PhoneVerification.debug_mode?
         # Debug mode: accept any 6-digit code without checking Redis cache
         unless cleaned_code =~ /^\d{6}$/
           return(
@@ -230,18 +240,34 @@ module PhoneVerification
         Discourse.redis.del(code_key)
       end
 
-      # Deactivate any previous active record for this user
-      UserPhoneRecord.where(user_id: @user.id, active: true).update_all(
-        active: false
-      )
+      # The requester has proven they own the number, so it is now safe to
+      # tell them it is already bound to another account.
+      if UserPhoneRecord
+           .where(phone_number: formatted_phone, active: true)
+           .where.not(user_id: @user.id)
+           .exists?
+        return phone_already_used_result
+      end
 
       record =
-        UserPhoneRecord.create!(
-          user: @user,
-          phone_number: formatted_phone,
-          verified_at: Time.zone.now,
-          active: true
-        )
+        begin
+          UserPhoneRecord.transaction do
+            # Deactivate any previous active record for this user
+            UserPhoneRecord.where(user_id: @user.id, active: true).update_all(
+              active: false
+            )
+
+            UserPhoneRecord.create!(
+              user: @user,
+              phone_number: formatted_phone,
+              verified_at: Time.zone.now,
+              active: true
+            )
+          end
+        rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
+          # Another account bound the same number concurrently
+          return phone_already_used_result
+        end
 
       # Trigger Group Sync & Events
       GroupSyncService.sync_user(@user)
@@ -270,6 +296,35 @@ module PhoneVerification
       DiscourseEvent.trigger(:phone_verification_user_unbound, @user)
 
       { success: true }
+    end
+
+    private
+
+    # Redis counter key => daily limit. Limits per account alone don't stop
+    # SMS pumping from many fresh accounts, so the number, the IP and the
+    # whole site are capped too.
+    def daily_limits_for(formatted_phone)
+      today = Time.zone.now.strftime("%Y%m%d")
+      limits = {
+        "phone_verification:daily:#{@user.id}:#{today}" =>
+          SiteSetting.phone_verification_sms_daily_limit_per_user,
+        "phone_verification:daily_phone:#{formatted_phone}:#{today}" =>
+          SiteSetting.phone_verification_sms_daily_limit_per_phone,
+        "phone_verification:daily_global:#{today}" =>
+          SiteSetting.phone_verification_sms_daily_limit_global
+      }
+      if @ip_address.present?
+        limits["phone_verification:daily_ip:#{@ip_address}:#{today}"] =
+          SiteSetting.phone_verification_sms_daily_limit_per_ip
+      end
+      limits
+    end
+
+    def phone_already_used_result
+      {
+        success: false,
+        error: I18n.t("phone_verification.errors.phone_already_used")
+      }
     end
   end
 end

@@ -73,9 +73,13 @@ hooks:
 | `phone_verification_twilio_auth_token` | `""` | Twilio Auth Token |
 | `phone_verification_twilio_from_phone_number` | `""` | Twilio 发送方电话号码（E.164 格式，如 `+14155552671`） |
 | `phone_verification_twilio_messaging_service_sid` | `""` | 可选 Twilio Messaging Service SID（`MG...`） |
+| `phone_verification_send_code_min_trust_level` | `1` | 请求验证码所需的最低信任等级（管理人员不受限），防止新注册小号刷短信 |
 | `phone_verification_sms_daily_limit_per_user` | `5` | 单用户每日允许发送验证码最大次数 |
+| `phone_verification_sms_daily_limit_per_phone` | `3` | 同一手机号每日最多接收验证码次数（所有账号合计） |
+| `phone_verification_sms_daily_limit_per_ip` | `10` | 同一 IP 每日最多请求验证码次数 |
+| `phone_verification_sms_daily_limit_global` | `1000` | 全站每日短信发送上限，封顶短信费用 |
 | `phone_verification_verification_code_expiry_minutes` | `10` | 验证码有效时长（分钟） |
-| `phone_verification_debug_mode` | `false` | 调试模式开关（开启后跳过真实短信发送与单日发送限制，任意 6 位数字均可通过） |
+| `phone_verification_debug_mode` | `false` | 调试模式开关（开启后跳过真实短信发送与单日发送限制，任意 6 位数字均可通过）。生产服务器上还需在容器 env 中设置 `DISCOURSE_PHONE_VERIFICATION_ALLOW_DEBUG_MODE: true` 才生效，正式站不要设置 |
 | `phone_verification_block_disposable` | `true` | 启用一次性接码平台手机号拦截 |
 | `phone_verification_disposable_list_url` | jsDelivr URL | 开源一次性接码号段数据源 URL (iP1SMS) |
 | `phone_verification_custom_disposable_numbers` | `""` | 管理员自定义黑名单手机号列表（`\|` 分隔） |
