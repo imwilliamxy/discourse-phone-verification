@@ -11,6 +11,21 @@ RSpec.describe PhoneVerification do
     Group.refresh_automatic_groups!
   end
 
+  describe "user_anonymized event" do
+    it "deletes the user's phone records" do
+      PhoneVerification::UserPhoneRecord.create!(
+        user: user,
+        phone_number: "+14155552671",
+        verified_at: Time.zone.now,
+        active: true
+      )
+
+      UserAnonymizer.make_anonymous(user, Discourse.system_user)
+
+      expect(PhoneVerification::UserPhoneRecord.where(user_id: user.id)).to be_empty
+    end
+  end
+
   describe "user_promoted event (demotion handling)" do
     it "triggers :user_removed_from_group for higher trust level groups when user is demoted" do
       tl4_group = Group.find_by(name: "trust_level_4")
@@ -69,7 +84,7 @@ RSpec.describe PhoneVerification do
     it "bypasses sync and event emission when phone_verification_enabled is false" do
       SiteSetting.phone_verification_enabled = false
 
-      expect(PhoneVerification::GroupSyncService).not_to receive(:sync_user)
+      allow(PhoneVerification::GroupSyncService).to receive(:sync_user)
 
       removed_groups = []
       event_listener =
@@ -88,6 +103,9 @@ RSpec.describe PhoneVerification do
         )
 
         expect(removed_groups).to be_empty
+        expect(PhoneVerification::GroupSyncService).not_to have_received(
+          :sync_user
+        )
       ensure
         DiscourseEvent.off(:user_removed_from_group, &event_listener)
       end
@@ -98,22 +116,28 @@ RSpec.describe PhoneVerification do
     it "does not call sync_user when phone_verification_enabled is false" do
       SiteSetting.phone_verification_enabled = false
 
-      expect(PhoneVerification::GroupSyncService).not_to receive(:sync_user)
+      allow(PhoneVerification::GroupSyncService).to receive(:sync_user)
 
       DiscourseEvent.trigger(:user_demoted, user_id: user.id)
       DiscourseEvent.trigger(:user_suspended, user_id: user.id)
       DiscourseEvent.trigger(:user_unsuspended, user_id: user.id)
+
+      expect(PhoneVerification::GroupSyncService).not_to have_received(
+        :sync_user
+      )
     end
 
     it "calls sync_user when phone_verification_enabled is true" do
-      expect(PhoneVerification::GroupSyncService).to receive(:sync_user)
-        .with(user)
-        .exactly(3)
-        .times
+      allow(PhoneVerification::GroupSyncService).to receive(:sync_user)
 
       DiscourseEvent.trigger(:user_demoted, user: user)
       DiscourseEvent.trigger(:user_suspended, user: user)
       DiscourseEvent.trigger(:user_unsuspended, user: user)
+
+      expect(PhoneVerification::GroupSyncService).to have_received(:sync_user)
+        .with(user)
+        .exactly(3)
+        .times
     end
   end
 end

@@ -31,12 +31,12 @@ module PhoneVerification
         Result.new(success: true, message_id: response.message_id)
       rescue Aws::SNS::Errors::ServiceError => e
         Rails.logger.error(
-          "[PhoneVerification] AWS SNS error sending to #{to}: #{e.message}"
+          "[PhoneVerification] AWS SNS error sending to #{UserPhoneRecord.mask(to)}: #{e.message}"
         )
         Result.new(success: false, error_message: e.message)
       rescue StandardError => e
         Rails.logger.error(
-          "[PhoneVerification] Unexpected error sending SMS to #{to}: #{e.message}"
+          "[PhoneVerification] Unexpected error sending SMS to #{UserPhoneRecord.mask(to)}: #{e.message}"
         )
         Result.new(success: false, error_message: e.message)
       end

@@ -61,7 +61,7 @@ module PhoneVerification
             err_msg =
               "Twilio Lookup intelligence unavailable: #{sub_error.presence || "missing line type"}"
             Rails.logger.warn(
-              "[PhoneVerification] #{err_msg} for #{phone_number}"
+              "[PhoneVerification] #{err_msg} for #{UserPhoneRecord.mask(phone_number)}"
             )
             return Result.new(success: false, error_message: err_msg)
           end
@@ -78,13 +78,13 @@ module PhoneVerification
             parsed["message"].presence ||
               "Twilio Lookup failed with HTTP #{response.code}"
           Rails.logger.error(
-            "[PhoneVerification] Twilio Lookup error for #{phone_number} (HTTP #{response.code}): #{error_msg}"
+            "[PhoneVerification] Twilio Lookup error for #{UserPhoneRecord.mask(phone_number)} (HTTP #{response.code}): #{error_msg}"
           )
           Result.new(success: false, error_message: error_msg)
         end
       rescue StandardError => e
         Rails.logger.error(
-          "[PhoneVerification] Unexpected Twilio Lookup error for #{phone_number}: #{e.message}"
+          "[PhoneVerification] Unexpected Twilio Lookup error for #{UserPhoneRecord.mask(phone_number)}: #{e.message}"
         )
         Result.new(success: false, error_message: e.message)
       end

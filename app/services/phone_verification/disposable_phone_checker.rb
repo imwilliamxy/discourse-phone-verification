@@ -82,15 +82,21 @@ module PhoneVerification
           k.is_a?(String) && k.match?(/\A1[2-9]\d{9}\z/)
         end
 
-      Discourse.redis.del(REDIS_TMP_KEY)
-      Discourse.redis.del(REDIS_SET_KEY)
+      # An empty or broken remote list must not wipe the blocklist we have
+      raise ArgumentError, "No US numbers in disposable list" if us_numbers.empty?
 
-      if us_numbers.any?
-        us_numbers.each_slice(BATCH_SIZE) do |batch|
-          Discourse.redis.sadd(REDIS_SET_KEY, batch)
-        end
-        Discourse.redis.expire(REDIS_SET_KEY, REDIS_TTL_SECONDS)
+      # Build the new set under a temporary key and swap it in with RENAME,
+      # so lookups never see an empty or half-filled set during a sync.
+      Discourse.redis.del(REDIS_TMP_KEY)
+      us_numbers.each_slice(BATCH_SIZE) do |batch|
+        Discourse.redis.sadd(REDIS_TMP_KEY, batch)
       end
+      # DiscourseRedis only namespaces the first key of RENAME
+      Discourse.redis.rename(
+        REDIS_TMP_KEY,
+        Discourse.redis.namespace_key(REDIS_SET_KEY)
+      )
+      Discourse.redis.expire(REDIS_SET_KEY, REDIS_TTL_SECONDS)
 
       Discourse.redis.setex(
         REDIS_SYNCED_AT_KEY,

@@ -24,63 +24,14 @@ end
 
 require_relative "lib/phone_verification/engine"
 
-after_initialize do
-  require_relative "lib/phone_verification/site_settings_extension"
-  SiteSettings::LabelFormatter.singleton_class.prepend(
-    ::PhoneVerification::LocalizedLabelFormatter
-  )
-  SiteSetting.singleton_class.prepend(
-    ::PhoneVerification::LocalizedSiteSettingExtension
-  )
+# Keep phone numbers out of the request logs
+Rails.application.config.filter_parameters += %i[phone_number]
 
+after_initialize do
   require_relative "app/services/problem_check/phone_verification_missing_dynamic_groups"
   register_problem_check ProblemCheck::PhoneVerificationMissingDynamicGroups
 
   require_relative "app/jobs/scheduled/sync_disposable_phone_numbers"
-
-  # Defensive reloader compatibility for dynamic groups during Rails code reloads
-  ActiveSupport::Reloader.to_prepare do
-    if defined?(::DiscourseDynamicGroups)
-      unless Group.method_defined?(:get_depending_group_ids)
-        class ::Group
-          def get_depending_group_ids
-            GroupCustomField.where(
-              name: "depends_on_#{name.downcase}"
-            ).pluck(:group_id)
-          end
-        end
-      end
-
-      unless Group.method_defined?(:evaluate_membership)
-        class ::Group
-          def evaluate_membership(user)
-            return unless defined?(::DiscourseDynamicGroups::RuleEngine)
-            engine = ::DiscourseDynamicGroups::RuleEngine.new
-            membership = engine.evaluate_rule(user, dynamic_rule)
-            is_member =
-              GroupUser.where(user_id: user.id).where(group_id: id).exists?
-            if is_member && !membership
-              remove(user)
-              false
-            elsif !is_member && membership
-              add(user)
-              true
-            end
-          end
-        end
-      end
-
-      unless Badge.method_defined?(:get_depending_group_ids)
-        class ::Badge
-          def get_depending_group_ids
-            GroupCustomField.where(name: "depends_on_badge:#{id}").pluck(
-              :group_id
-            )
-          end
-        end
-      end
-    end
-  end
 
   # Event hooks for Trust Level & account status changes
   on(:user_promoted) do |payload|
@@ -92,6 +43,8 @@ after_initialize do
 
       old_tl = payload[:old_trust_level]
       new_tl = payload[:new_trust_level]
+      # Core drops trust level group memberships with delete_all on demotion,
+      # which fires no user_removed_from_group events; dynamic groups need them.
       if old_tl && new_tl && new_tl < old_tl
         Group.user_trust_level_change!(user.id, new_tl)
         ((new_tl + 1)..old_tl).each do |tl|
@@ -152,7 +105,17 @@ after_initialize do
     end
   end
 
-  # Staff serializer extension to view unmasked phone number
+  # An anonymized account must not stay linked to a real phone number
+  on(:user_anonymized) do |payload|
+    user = payload[:user]
+    next unless user
+
+    PhoneVerification::UserPhoneRecord.where(user_id: user.id).delete_all
+    PhoneVerification::GroupSyncService.sync_user(user)
+  end
+
+  # Staff see whether a user verified a phone; only the last 4 digits are
+  # stored, so that is all they can see
   add_to_serializer(:admin_detailed_user, :phone_verification_record) do
     record =
       PhoneVerification::UserPhoneRecord.find_by(
@@ -162,7 +125,7 @@ after_initialize do
     return nil unless record
 
     {
-      phone_number: record.phone_number,
+      phone_number_masked: record.masked_phone_number,
       verified_at: record.verified_at,
       active: record.active
     }

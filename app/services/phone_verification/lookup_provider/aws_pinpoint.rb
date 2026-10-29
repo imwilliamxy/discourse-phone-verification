@@ -90,13 +90,13 @@ module PhoneVerification
             parsed["message"].presence ||
               "AWS Pinpoint Lookup failed with HTTP #{response.code}"
           Rails.logger.error(
-            "[PhoneVerification] AWS Pinpoint Lookup error for #{phone_number} (HTTP #{response.code}): #{error_msg}"
+            "[PhoneVerification] AWS Pinpoint Lookup error for #{UserPhoneRecord.mask(phone_number)} (HTTP #{response.code}): #{error_msg}"
           )
           Result.new(success: false, error_message: error_msg)
         end
       rescue StandardError => e
         Rails.logger.error(
-          "[PhoneVerification] Unexpected AWS Pinpoint Lookup error for #{phone_number}: #{e.message}"
+          "[PhoneVerification] Unexpected AWS Pinpoint Lookup error for #{UserPhoneRecord.mask(phone_number)}: #{e.message}"
         )
         Result.new(success: false, error_message: e.message)
       end

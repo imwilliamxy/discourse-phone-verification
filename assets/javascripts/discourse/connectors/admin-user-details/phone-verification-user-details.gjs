@@ -11,11 +11,11 @@ export default class PhoneVerificationUserDetails extends Component {
   }
 
   get hasPhoneNumber() {
-    return Boolean(this.record?.phone_number);
+    return Boolean(this.record?.phone_number_masked);
   }
 
   get phoneNumber() {
-    return this.record?.phone_number;
+    return this.record?.phone_number_masked;
   }
 
   get verifiedAt() {

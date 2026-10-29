@@ -7,7 +7,7 @@ module PhoneVerification
     CACHE_KEY_PREFIX = "phone_verification:line_type:"
 
     def self.cache_key(formatted_phone)
-      "#{CACHE_KEY_PREFIX}#{formatted_phone}"
+      "#{CACHE_KEY_PREFIX}#{UserPhoneRecord.hash_phone_number(formatted_phone)}"
     end
 
     def self.check(raw_phone)
