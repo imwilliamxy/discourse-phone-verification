@@ -9,6 +9,24 @@ import DButton from "discourse/ui-kit/d-button";
 import dIcon from "discourse/ui-kit/helpers/d-icon";
 import { i18n } from "discourse-i18n";
 
+// Only the 10 national digits are typed; the +1 is fixed. A leading 1 is
+// always a country code (US area codes never start with 1), so it is dropped
+// whether typed out of habit or pasted as part of "+1 (415) 555-2671".
+function nationalDigits(value) {
+  return (value || "").replace(/\D/g, "").replace(/^1/, "").slice(0, 10);
+}
+
+// 4155552671 -> (415) 555-2671, applied progressively while typing
+function formatNational(digits) {
+  if (digits.length <= 3) {
+    return digits;
+  }
+  if (digits.length <= 6) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  }
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
 export default class PhoneVerificationBox extends Component {
   @service siteSettings;
   @service currentUser;
@@ -64,6 +82,18 @@ export default class PhoneVerificationBox extends Component {
     return this.phoneVerified && this.currentTrustLevel >= this.minTrustLevel;
   }
 
+  get phoneDigits() {
+    return nationalDigits(this.inputPhoneNumber);
+  }
+
+  get phoneComplete() {
+    return this.phoneDigits.length === 10;
+  }
+
+  get fullPhoneNumber() {
+    return `+1${this.phoneDigits}`;
+  }
+
   get sendCodeButtonLabel() {
     if (this.cooldownSeconds > 0) {
       return i18n("phone_verification.resend_code_btn", {
@@ -95,7 +125,7 @@ export default class PhoneVerificationBox extends Component {
 
   @action
   async sendCode() {
-    if (!this.inputPhoneNumber) {
+    if (!this.phoneComplete) {
       return;
     }
 
@@ -103,7 +133,7 @@ export default class PhoneVerificationBox extends Component {
     try {
       const res = await ajax("/phone-verification/send-code.json", {
         type: "POST",
-        data: { phone_number: this.inputPhoneNumber },
+        data: { phone_number: this.fullPhoneNumber },
       });
       this.codeSent = true;
       this.startCooldown(res.cooldown_seconds || 60);
@@ -119,7 +149,7 @@ export default class PhoneVerificationBox extends Component {
 
   @action
   async verifyCode() {
-    if (!this.inputPhoneNumber || !this.inputCode) {
+    if (!this.phoneComplete || !this.inputCode) {
       return;
     }
 
@@ -127,7 +157,7 @@ export default class PhoneVerificationBox extends Component {
     try {
       const res = await ajax("/phone-verification/verify-code.json", {
         type: "POST",
-        data: { phone_number: this.inputPhoneNumber, code: this.inputCode },
+        data: { phone_number: this.fullPhoneNumber, code: this.inputCode },
       });
       this.phoneVerified = true;
       this.maskedPhoneNumber = res.phone_number_masked;
@@ -172,7 +202,11 @@ export default class PhoneVerificationBox extends Component {
 
   @action
   onPhoneInput(event) {
-    this.inputPhoneNumber = event.target.value;
+    const formatted = formatNational(nationalDigits(event.target.value));
+    this.inputPhoneNumber = formatted;
+    // Also write it back directly: when only a non-digit was typed the
+    // tracked value doesn't change, so Glimmer wouldn't re-render the input
+    event.target.value = formatted;
   }
 
   @action
@@ -242,19 +276,25 @@ export default class PhoneVerificationBox extends Component {
         {{else}}
           <div class="phone-verification-form">
             <div class="input-group">
-              <input
-                aria-label={{i18n "phone_verification.phone_label"}}
-                disabled={{this.sendingCode}}
-                oninput={{this.onPhoneInput}}
-                placeholder={{i18n "phone_verification.phone_placeholder"}}
-                type="text"
-                value={{this.inputPhoneNumber}}
-              />
+              <div class="phone-input">
+                <span class="phone-input__prefix">+1</span>
+                <input
+                  aria-label={{i18n "phone_verification.phone_label"}}
+                  autocomplete="tel-national"
+                  class="phone-input__number"
+                  disabled={{this.sendingCode}}
+                  inputmode="numeric"
+                  oninput={{this.onPhoneInput}}
+                  placeholder={{i18n "phone_verification.phone_placeholder"}}
+                  type="tel"
+                  value={{this.inputPhoneNumber}}
+                />
+              </div>
               <DButton
                 class="btn-primary"
                 @action={{this.sendCode}}
                 @disabled={{or
-                  (not this.inputPhoneNumber)
+                  (not this.phoneComplete)
                   (gt this.cooldownSeconds 0)
                 }}
                 @icon="paper-plane"

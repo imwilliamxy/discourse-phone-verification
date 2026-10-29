@@ -13,7 +13,7 @@ en:
       title: "Phone Verification"
       description: "Verify your US (+1) mobile phone number to unlock exclusive categories based on your trust level. After clicking \"Send Code\", a one-time SMS verification code will be sent to the phone number provided. Standard message and data rates may apply."
       phone_label: "US Phone Number"
-      phone_placeholder: "+1 (555) 000-0000"
+      phone_placeholder: "(555) 000-0000"
       send_code_btn: "Send Code"
       resend_code_btn: "Resend in %{seconds}s"
       code_label: "Verification Code"
