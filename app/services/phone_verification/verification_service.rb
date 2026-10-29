@@ -141,10 +141,11 @@ module PhoneVerification
           end
         end
 
-        # Save to Redis
+        # Save to Redis; a new code gets a fresh attempt budget
         code_key = "phone_verification:code:#{@user.id}"
-        payload = { phone: formatted_phone, code: code, attempts: 0 }.to_json
+        payload = { phone: formatted_phone, code: code }.to_json
         Discourse.redis.setex(code_key, expiry_minutes * 60, payload)
+        Discourse.redis.del(attempts_key_for(@user))
 
         # Increment daily counts
         unless PhoneVerification.debug_mode?
@@ -211,11 +212,22 @@ module PhoneVerification
 
         parsed = JSON.parse(data)
         stored_phone = parsed["phone"]
-        stored_code = parsed["code"]
-        attempts = parsed["attempts"].to_i
+        stored_code = parsed["code"].to_s
 
-        if attempts >= MAX_FAILED_ATTEMPTS
-          Discourse.redis.del(code_key)
+        # Count every attempt with an atomic INCR before comparing, so
+        # parallel requests can't each read the same counter and get extra
+        # guesses at the code.
+        attempts_key = attempts_key_for(@user)
+        attempts = Discourse.redis.incr(attempts_key)
+        if attempts == 1
+          Discourse.redis.expire(
+            attempts_key,
+            [Discourse.redis.ttl(code_key), 1].max
+          )
+        end
+
+        if attempts > MAX_FAILED_ATTEMPTS
+          Discourse.redis.del(code_key, attempts_key)
           return(
             {
               success: false,
@@ -224,10 +236,11 @@ module PhoneVerification
           )
         end
 
-        if stored_phone != formatted_phone || stored_code != cleaned_code
-          parsed["attempts"] = attempts + 1
-          ttl = Discourse.redis.ttl(code_key)
-          Discourse.redis.setex(code_key, [ttl, 1].max, parsed.to_json)
+        if stored_phone != formatted_phone ||
+             !ActiveSupport::SecurityUtils.secure_compare(
+               stored_code,
+               cleaned_code
+             )
           return(
             {
               success: false,
@@ -237,7 +250,7 @@ module PhoneVerification
         end
 
         # Code is valid! Consume it.
-        Discourse.redis.del(code_key)
+        Discourse.redis.del(code_key, attempts_key)
       end
 
       # The requester has proven they own the number, so it is now safe to
@@ -318,6 +331,10 @@ module PhoneVerification
           SiteSetting.phone_verification_sms_daily_limit_per_ip
       end
       limits
+    end
+
+    def attempts_key_for(user)
+      "phone_verification:attempts:#{user.id}"
     end
 
     def phone_already_used_result

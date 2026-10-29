@@ -413,6 +413,49 @@ RSpec.describe PhoneVerification::VerificationService do
         expect(result[:error]).to be_present
       end
 
+      it "allows at most 5 attempts per code" do
+        described_class.send_code(user: user, phone_number: phone)
+        code =
+          JSON.parse(Discourse.redis.get("phone_verification:code:#{user.id}"))[
+            "code"
+          ]
+        wrong_code = code == "000000" ? "111111" : "000000"
+
+        5.times do
+          result =
+            described_class.verify_code(
+              user: user,
+              phone_number: phone,
+              code: wrong_code
+            )
+          expect(result[:error]).to eq(
+            I18n.t("phone_verification.errors.invalid_code")
+          )
+        end
+
+        result =
+          described_class.verify_code(user: user, phone_number: phone, code: code)
+        expect(result[:error]).to eq(
+          I18n.t("phone_verification.errors.too_many_attempts")
+        )
+        expect(
+          Discourse.redis.get("phone_verification:code:#{user.id}")
+        ).to be_nil
+      end
+
+      it "gives a new code a fresh attempt budget" do
+        Discourse.redis.set("phone_verification:attempts:#{user.id}", 5)
+        described_class.send_code(user: user, phone_number: phone)
+        code =
+          JSON.parse(Discourse.redis.get("phone_verification:code:#{user.id}"))[
+            "code"
+          ]
+
+        result =
+          described_class.verify_code(user: user, phone_number: phone, code: code)
+        expect(result[:success]).to be true
+      end
+
       it "rejects verification when no code was sent" do
         result =
           described_class.verify_code(
