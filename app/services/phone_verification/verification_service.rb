@@ -114,7 +114,7 @@ module PhoneVerification
         # Send SMS (skipped in debug mode)
         if PhoneVerification.debug_mode?
           Rails.logger.info(
-            "[PhoneVerification DEBUG] Generated verification code #{code} for #{formatted_phone} (SMS sending skipped)"
+            "[PhoneVerification DEBUG] Generated verification code #{code} for #{UserPhoneRecord.mask(formatted_phone)} (SMS sending skipped)"
           )
         else
           site_title = SiteSetting.title
@@ -256,7 +256,8 @@ module PhoneVerification
       # The requester has proven they own the number, so it is now safe to
       # tell them it is already bound to another account.
       if UserPhoneRecord
-           .where(phone_number: formatted_phone, active: true)
+           .active
+           .with_phone(formatted_phone)
            .where.not(user_id: @user.id)
            .exists?
         return phone_already_used_result

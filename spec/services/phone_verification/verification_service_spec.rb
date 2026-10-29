@@ -337,10 +337,11 @@ RSpec.describe PhoneVerification::VerificationService do
         I18n.t("phone_verification.errors.phone_already_used")
       )
       expect(
-        PhoneVerification::UserPhoneRecord.find_by(
-          phone_number: phone,
-          active: true
-        ).user_id
+        PhoneVerification::UserPhoneRecord
+          .active
+          .with_phone(phone)
+          .first
+          .user_id
       ).to eq(other_user.id)
       expect(own_record.reload.active).to be true
     end

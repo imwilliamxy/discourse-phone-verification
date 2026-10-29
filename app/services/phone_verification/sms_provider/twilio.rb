@@ -75,13 +75,13 @@ module PhoneVerification
             parsed["message"].presence ||
               "Twilio request failed with HTTP #{response.code}"
           Rails.logger.error(
-            "[PhoneVerification] Twilio SMS error sending to #{to} (HTTP #{response.code}): #{error_msg}"
+            "[PhoneVerification] Twilio SMS error sending to #{UserPhoneRecord.mask(to)} (HTTP #{response.code}): #{error_msg}"
           )
           Result.new(success: false, error_message: error_msg)
         end
       rescue StandardError => e
         Rails.logger.error(
-          "[PhoneVerification] Unexpected Twilio SMS error sending to #{to}: #{e.message}"
+          "[PhoneVerification] Unexpected Twilio SMS error sending to #{UserPhoneRecord.mask(to)}: #{e.message}"
         )
         Result.new(success: false, error_message: e.message)
       end

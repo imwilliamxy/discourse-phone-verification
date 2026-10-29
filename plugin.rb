@@ -24,6 +24,9 @@ end
 
 require_relative "lib/phone_verification/engine"
 
+# Keep phone numbers out of the request logs
+Rails.application.config.filter_parameters += %i[phone_number]
+
 after_initialize do
   require_relative "app/services/problem_check/phone_verification_missing_dynamic_groups"
   register_problem_check ProblemCheck::PhoneVerificationMissingDynamicGroups
@@ -102,7 +105,17 @@ after_initialize do
     end
   end
 
-  # Staff serializer extension to view unmasked phone number
+  # An anonymized account must not stay linked to a real phone number
+  on(:user_anonymized) do |payload|
+    user = payload[:user]
+    next unless user
+
+    PhoneVerification::UserPhoneRecord.where(user_id: user.id).delete_all
+    PhoneVerification::GroupSyncService.sync_user(user)
+  end
+
+  # Staff see whether a user verified a phone; only the last 4 digits are
+  # stored, so that is all they can see
   add_to_serializer(:admin_detailed_user, :phone_verification_record) do
     record =
       PhoneVerification::UserPhoneRecord.find_by(
@@ -112,7 +125,7 @@ after_initialize do
     return nil unless record
 
     {
-      phone_number: record.phone_number,
+      phone_number_masked: record.masked_phone_number,
       verified_at: record.verified_at,
       active: record.active
     }

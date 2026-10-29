@@ -11,6 +11,21 @@ RSpec.describe PhoneVerification do
     Group.refresh_automatic_groups!
   end
 
+  describe "user_anonymized event" do
+    it "deletes the user's phone records" do
+      PhoneVerification::UserPhoneRecord.create!(
+        user: user,
+        phone_number: "+14155552671",
+        verified_at: Time.zone.now,
+        active: true
+      )
+
+      UserAnonymizer.make_anonymous(user, Discourse.system_user)
+
+      expect(PhoneVerification::UserPhoneRecord.where(user_id: user.id)).to be_empty
+    end
+  end
+
   describe "user_promoted event (demotion handling)" do
     it "triggers :user_removed_from_group for higher trust level groups when user is demoted" do
       tl4_group = Group.find_by(name: "trust_level_4")

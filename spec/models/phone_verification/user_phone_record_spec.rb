@@ -68,6 +68,45 @@ RSpec.describe PhoneVerification::UserPhoneRecord, type: :model do
       expect(new_record.valid?).to be true
     end
 
+    it "stores only an HMAC and the last 4 digits, never the number" do
+      record =
+        described_class.create!(
+          user: user,
+          phone_number: "(415) 555-2671",
+          verified_at: Time.zone.now,
+          active: true
+        )
+
+      row =
+        DB.query(
+          "SELECT phone_number, phone_number_hash, phone_number_last4 FROM user_phone_records WHERE id = ?",
+          record.id
+        ).first
+      expect(row.phone_number).to be_nil
+      expect(row.phone_number_last4).to eq("2671")
+      expect(row.phone_number_hash).to eq(
+        described_class.hash_phone_number("+14155552671")
+      )
+      expect(row.phone_number_hash).not_to include("4155552671")
+
+      reloaded = described_class.find(record.id)
+      expect(reloaded.phone_number).to be_nil
+      expect(reloaded.masked_phone_number).to eq("+1 (***) ***-2671")
+      expect(described_class.with_phone("+14155552671").first).to eq(reloaded)
+    end
+
+    it "can be deactivated after reload without the plaintext number" do
+      record =
+        described_class.create!(
+          user: user,
+          phone_number: "+14155552671",
+          verified_at: Time.zone.now,
+          active: true
+        )
+      described_class.find(record.id).deactivate!
+      expect(record.reload.active).to be false
+    end
+
     it "only accepts US area codes within +1" do
       expect(described_class.valid_us_phone?("+14155552671")).to be true
       expect(described_class.valid_us_phone?("+17875552671")).to be true # Puerto Rico

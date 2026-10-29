@@ -3,18 +3,26 @@
 module PhoneVerification
   class UserPhoneRecord < ::ActiveRecord::Base
     self.table_name = "user_phone_records"
+    # Plaintext numbers are no longer stored, see HashUserPhoneRecordNumbers
+    self.ignored_columns = %w[phone_number]
+
+    HMAC_SALT = "phone_verification phone number hmac"
 
     belongs_to :user
 
     validates :user_id, presence: true
-    validates :phone_number, presence: true
+    validates :phone_number, presence: true, on: :create
+    validates :phone_number_hash, presence: true
     validates :verified_at, presence: true
 
-    before_validation :normalize_phone_number
     validate :validate_us_phone_format
     validate :validate_uniqueness_when_active
 
     scope :active, -> { where(active: true) }
+    scope :with_phone,
+          ->(formatted_phone) do
+            where(phone_number_hash: hash_phone_number(formatted_phone))
+          end
 
     # +1 also covers Canada, the Caribbean NANP countries (common SMS toll
     # fraud destinations), toll-free, premium-rate and non-geographic codes.
@@ -31,6 +39,21 @@ module PhoneVerification
       545 546 547 549 550 552 553 554 556 558 566 569 577 578 588 589 700 710
       900
     ].to_set.freeze
+
+    # Numbers are stored as an HMAC keyed off the site's secret_key_base plus
+    # the last 4 digits, so a database dump or backup doesn't reveal them
+    # (a plain hash of a 10-digit number is trivial to brute-force).
+    # Changing secret_key_base means numbers bound before can be bound again.
+    def self.hash_phone_number(formatted_phone)
+      key = Rails.application.key_generator.generate_key(HMAC_SALT)
+      OpenSSL::HMAC.hexdigest("SHA256", key, formatted_phone.to_s)
+    end
+
+    def self.mask(formatted_phone)
+      digits = formatted_phone.to_s.gsub(/\D/, "")
+      return "" if digits.length < 4
+      "+1 (***) ***-#{digits[-4..]}"
+    end
 
     def self.normalize(raw_phone)
       digits = raw_phone.to_s.gsub(/\D/, "")
@@ -58,19 +81,22 @@ module PhoneVerification
       update!(active: false)
     end
 
+    # Only set while binding a number; it is never written to the database
+    attr_reader :phone_number
+
+    def phone_number=(raw_phone)
+      @phone_number = raw_phone.present? ? self.class.normalize(raw_phone) : nil
+      self.phone_number_hash =
+        @phone_number && self.class.hash_phone_number(@phone_number)
+      self.phone_number_last4 = @phone_number && @phone_number[-4..]
+    end
+
     def masked_phone_number
-      return "" if phone_number.blank?
-      norm = self.class.normalize(phone_number)
-      return norm unless norm =~ /^\+1(\d{3})(\d{3})(\d{4})$/
-      "+1 (***) ***-#{$3}"
+      return "" if phone_number_last4.blank?
+      "+1 (***) ***-#{phone_number_last4}"
     end
 
     private
-
-    def normalize_phone_number
-      self.phone_number =
-        self.class.normalize(phone_number) if phone_number.present?
-    end
 
     def validate_us_phone_format
       return if phone_number.blank?
@@ -88,9 +114,9 @@ module PhoneVerification
         errors.add(:user_id, :taken) if existing_user.exists?
       end
 
-      if phone_number.present?
+      if phone_number_hash.present?
         existing_phone =
-          self.class.where(phone_number: phone_number, active: true)
+          self.class.where(phone_number_hash: phone_number_hash, active: true)
         existing_phone = existing_phone.where.not(id: id) if persisted?
         errors.add(:phone_number, :taken) if existing_phone.exists?
       end
