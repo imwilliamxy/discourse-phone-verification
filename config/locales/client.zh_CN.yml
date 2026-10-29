@@ -6,6 +6,10 @@ zh_CN:
           phone_verification: "手机号验证 (Phone Verification)"
   js:
     phone_verification:
+      banner:
+        default_text: "你已达到信任等级 %{trust_level}。该等级的部分专属板块需要验证美国（+1）手机号才能访问。"
+        verify: "去验证手机号"
+        dismiss: "关闭"
       title: "手机号验证 (+1)"
       description: "完成美国 (+1) 手机号码短信验证，即可根据信任等级解锁专属讨论板块。点击“获取验证码”后，我们会向您提供的手机号码发送一条一次性短信验证码。标准短信和数据费率可能适用。"
       phone_label: "美国手机号码"

@@ -98,6 +98,21 @@ plugins:
       phone_verification_sms_provider:
         - twilio
     depends_behavior: "hidden"
+  phone_verification_banner_enabled:
+    default: false
+    client: true
+    type: bool
+  phone_verification_banner_until:
+    default: ""
+    client: true
+    type: string
+  phone_verification_banner_text:
+    default: ""
+    client: true
+    type: string
+  phone_verification_prompt_pm_enabled:
+    default: false
+    type: bool
   phone_verification_send_code_min_trust_level:
     default: 1
     type: enum

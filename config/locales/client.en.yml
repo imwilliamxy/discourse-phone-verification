@@ -6,6 +6,10 @@ en:
           phone_verification: "Phone Verification"
   js:
     phone_verification:
+      banner:
+        default_text: "You have reached trust level %{trust_level}. Some categories for your trust level require a verified US (+1) phone number."
+        verify: "Verify phone number"
+        dismiss: "Dismiss"
       title: "Phone Verification"
       description: "Verify your US (+1) mobile phone number to unlock exclusive categories based on your trust level. After clicking \"Send Code\", a one-time SMS verification code will be sent to the phone number provided. Standard message and data rates may apply."
       phone_label: "US Phone Number"

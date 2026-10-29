@@ -13,6 +13,10 @@ en:
       phone_verification_twilio_auth_token: "Phone Verification Twilio Auth Token"
       phone_verification_twilio_from_phone_number: "Phone Verification Twilio From Phone Number"
       phone_verification_twilio_messaging_service_sid: "Phone Verification Twilio Messaging Service SID"
+      phone_verification_banner_enabled: "Phone Verification Banner Enabled"
+      phone_verification_banner_until: "Phone Verification Banner Until"
+      phone_verification_banner_text: "Phone Verification Banner Text"
+      phone_verification_prompt_pm_enabled: "Phone Verification Promotion PM Enabled"
       phone_verification_send_code_min_trust_level: "Phone Verification Send Code Min Trust Level"
       phone_verification_sms_daily_limit_per_user: "Phone Verification SMS Daily Limit Per User"
       phone_verification_sms_daily_limit_per_phone: "Phone Verification SMS Daily Limit Per Phone Number"
@@ -42,6 +46,10 @@ en:
       phone_verification_twilio_auth_token: "twilio|token|auth"
       phone_verification_twilio_from_phone_number: "twilio|from number|phone"
       phone_verification_twilio_messaging_service_sid: "twilio|messaging service sid"
+      phone_verification_banner_enabled: "banner|notice|announcement|transition"
+      phone_verification_banner_until: "banner|date|until|expiry"
+      phone_verification_banner_text: "banner|text|message|announcement"
+      phone_verification_prompt_pm_enabled: "pm|personal message|promotion|trust level|notify"
       phone_verification_send_code_min_trust_level: "trust level|tl|minimum|sms|abuse"
       phone_verification_sms_daily_limit_per_user: "daily limit|rate limit|quota"
       phone_verification_sms_daily_limit_per_phone: "daily limit|rate limit|quota|phone number"
@@ -66,6 +74,10 @@ en:
     phone_verification_twilio_auth_token: "Twilio Auth Token."
     phone_verification_twilio_from_phone_number: "Twilio Sender Phone Number in E.164 format (e.g. +14155552671)."
     phone_verification_twilio_messaging_service_sid: "Optional Twilio Messaging Service SID (MG...)."
+    phone_verification_banner_enabled: "Show a site-wide banner to users who have reached the minimum trust level but haven't verified a phone number, linking to the verification page. Meant for the transition period when a category starts requiring phone verification."
+    phone_verification_banner_until: "Last day the banner is shown, in YYYY-MM-DD format. Leave empty to show it with no end date. An invalid date hides the banner."
+    phone_verification_banner_text: "Banner text. Leave empty to use the default text. Plain text only."
+    phone_verification_prompt_pm_enabled: "Send a personal message to users when they are promoted to the minimum trust level without a verified phone number. Each user gets it at most once. The message can be edited under Customize > Text (system_messages.phone_verification_required)."
     phone_verification_send_code_min_trust_level: "Minimum Trust Level required to request an SMS verification code. Staff are always allowed. Keeps freshly registered accounts from being used to send SMS."
     phone_verification_sms_daily_limit_per_user: "Maximum SMS verification codes a user can request per day."
     phone_verification_sms_daily_limit_per_phone: "Maximum SMS verification codes sent to the same phone number per day, across all accounts."
@@ -81,6 +93,16 @@ en:
   dashboard:
     problem:
       phone_verification_missing_dynamic_groups: "The Phone Verification plugin is enabled, but the recommended companion plugin <a href='https://github.com/communiteq/discourse-dynamic-groups' target='_blank'>discourse-dynamic-groups</a> is not installed. Dynamic group calculation and advanced category gatekeeping rules will not be active."
+  system_messages:
+    phone_verification_required:
+      title: "Phone verification needed"
+      subject_template: "Verify your phone number to access trust level %{trust_level} categories"
+      text_body_template: |
+        Congratulations on reaching trust level %{trust_level}!
+
+        Some categories for trust level %{trust_level} members are only open to members who have verified a US (+1) mobile phone number. You can verify yours on your [account preferences page](%{verify_url}).
+
+        Your number is never shown to other members.
   phone_verification:
     sms_message: "Your %{site_title} verification code is %{code}. Valid for %{expiry} minutes."
     errors:

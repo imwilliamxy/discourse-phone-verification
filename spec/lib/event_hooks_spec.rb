@@ -11,6 +11,42 @@ RSpec.describe PhoneVerification do
     Group.refresh_automatic_groups!
   end
 
+  describe "user_promoted event (verification prompt)" do
+    fab!(:tl2_user) { Fabricate(:user, trust_level: TrustLevel[2]) }
+
+    before do
+      SiteSetting.phone_verification_min_trust_level = 3
+      SiteSetting.phone_verification_prompt_pm_enabled = true
+    end
+
+    it "queues the prompt when a user crosses the minimum trust level" do
+      expect_enqueued_with(
+        job: :send_phone_verification_prompt,
+        args: {
+          user_id: tl2_user.id
+        }
+      ) do
+        DiscourseEvent.trigger(
+          :user_promoted,
+          user_id: tl2_user.id,
+          old_trust_level: 2,
+          new_trust_level: 3
+        )
+      end
+    end
+
+    it "does not queue it for promotions above the threshold" do
+      expect_not_enqueued_with(job: :send_phone_verification_prompt) do
+        DiscourseEvent.trigger(
+          :user_promoted,
+          user_id: user.id,
+          old_trust_level: 3,
+          new_trust_level: 4
+        )
+      end
+    end
+  end
+
   describe "user_anonymized event" do
     it "deletes the user's phone records" do
       PhoneVerification::UserPhoneRecord.create!(
