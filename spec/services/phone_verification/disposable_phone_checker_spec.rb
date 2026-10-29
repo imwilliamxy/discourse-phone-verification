@@ -55,6 +55,30 @@ RSpec.describe PhoneVerification::DisposablePhoneChecker do
     end
   end
 
+  describe ".sync_from_json! replacing an existing list" do
+    before do
+      described_class.sync_from_json!({ "12012018360" => "2020-10-30" }.to_json)
+    end
+
+    it "swaps in the new list and leaves no temporary key behind" do
+      described_class.sync_from_json!({ "12012018710" => "2025-05-06" }.to_json)
+
+      expect(described_class.disposable?("+12012018710")).to be true
+      expect(described_class.disposable?("+12012018360")).to be false
+      expect(
+        Discourse.redis.exists?(described_class::REDIS_TMP_KEY)
+      ).to be false
+    end
+
+    it "keeps the current list when the new one has no US numbers" do
+      expect {
+        described_class.sync_from_json!({ "46200231" => "2023-12-20" }.to_json)
+      }.to raise_error(ArgumentError)
+
+      expect(described_class.disposable?("+12012018360")).to be true
+    end
+  end
+
   describe ".clear_cache!" do
     it "removes all disposable phone number Redis keys" do
       described_class.sync_from_json!({ "12012018360" => "2020-10-30" }.to_json)
