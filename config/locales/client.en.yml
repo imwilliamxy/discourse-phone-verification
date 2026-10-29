@@ -4,8 +4,22 @@ en:
       site_settings:
         categories:
           phone_verification: "Phone Verification"
+      logs:
+        staff_actions:
+          actions:
+            phone_verification_lookup: "phone verification: look up number"
+            phone_verification_unbind: "phone verification: unbind number"
   js:
     phone_verification:
+      admin_page:
+        title: "Phone Verification"
+      admin_lookup:
+        tab_title: "Find by phone"
+        description: "Look up which accounts a phone number is or was bound to. Every lookup is recorded in the staff action log."
+        search: "Search"
+        no_results: "No account has ever been bound to %{phone}."
+        active: "Currently bound"
+        inactive: "Previously bound"
       banner:
         default_text: "You have reached trust level %{trust_level}. Some categories for your trust level require a verified US (+1) phone number."
         verify: "Verify phone number"
@@ -30,6 +44,9 @@ en:
     admin:
       phone_verification:
         title: "Phone Verification"
+        unbind_btn: "Unbind phone"
+        unbind_confirm: "Unbind this user's phone number? They lose access to phone-gated categories until they verify again. This is recorded in the staff action log."
+        unbound: "Phone number unbound."
         phone_number: "Bound Phone"
         verified_at: "Verified At"
         status: "Verification Status"

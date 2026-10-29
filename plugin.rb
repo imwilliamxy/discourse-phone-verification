@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-# name: uscardforum-phone-verification
+# name: discourse-phone-verification
 # about: US (+1) Phone SMS verification and Trust Level gated category access for Discourse
 # version: 0.1.0
 # authors: uscardforum
-# url: https://github.com/uscardforum/uscardforum-phone-verification
+# url: https://github.com/imwilliamxy/discourse-phone-verification
 
 enabled_site_setting :phone_verification_enabled
 
@@ -16,7 +16,7 @@ register_svg_icon "circle-info"
 register_svg_icon "circle-check"
 
 module ::PhoneVerification
-  PLUGIN_NAME = "uscardforum-phone-verification"
+  PLUGIN_NAME = "discourse-phone-verification"
 
   # Debug mode skips SMS and accepts any 6-digit code. On production it only
   # takes effect when the container env also opts in, so flipping the site
@@ -35,6 +35,10 @@ require_relative "lib/phone_verification/engine"
 Rails.application.config.filter_parameters += %i[phone_number]
 
 after_initialize do
+  add_admin_route "phone_verification.admin_page.title",
+                  "discourse-phone-verification",
+                  use_new_show_route: true
+
   require_relative "app/services/problem_check/phone_verification_missing_dynamic_groups"
   register_problem_check ProblemCheck::PhoneVerificationMissingDynamicGroups
 

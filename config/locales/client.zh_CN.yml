@@ -4,8 +4,22 @@ zh_CN:
       site_settings:
         categories:
           phone_verification: "手机号验证 (Phone Verification)"
+      logs:
+        staff_actions:
+          actions:
+            phone_verification_lookup: "手机验证：按号码查找"
+            phone_verification_unbind: "手机验证：解除绑定"
   js:
     phone_verification:
+      admin_page:
+        title: "手机号验证"
+      admin_lookup:
+        tab_title: "按手机号查找"
+        description: "查找某个手机号现在或曾经绑定过哪些账号。每次查找都会记入管理人员操作日志。"
+        search: "查找"
+        no_results: "%{phone} 从未绑定过任何账号。"
+        active: "当前绑定"
+        inactive: "曾经绑定"
       banner:
         default_text: "你已达到信任等级 %{trust_level}。该等级的部分专属板块需要验证美国（+1）手机号才能访问。"
         verify: "去验证手机号"
@@ -30,6 +44,9 @@ zh_CN:
     admin:
       phone_verification:
         title: "手机号验证信息"
+        unbind_btn: "解除手机绑定"
+        unbind_confirm: "确定解除该用户的手机号绑定吗？解除后对方会失去需要手机验证的板块的访问权限，直到重新验证。此操作会记入管理人员操作日志。"
+        unbound: "已解除手机号绑定。"
         phone_number: "绑定手机号"
         verified_at: "验证时间"
         status: "验证状态"

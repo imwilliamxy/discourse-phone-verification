@@ -8,24 +8,7 @@ import { and, gt, not, or } from "discourse/truth-helpers";
 import DButton from "discourse/ui-kit/d-button";
 import dIcon from "discourse/ui-kit/helpers/d-icon";
 import { i18n } from "discourse-i18n";
-
-// Only the 10 national digits are typed; the +1 is fixed. A leading 1 is
-// always a country code (US area codes never start with 1), so it is dropped
-// whether typed out of habit or pasted as part of "+1 (415) 555-2671".
-function nationalDigits(value) {
-  return (value || "").replace(/\D/g, "").replace(/^1/, "").slice(0, 10);
-}
-
-// 4155552671 -> (415) 555-2671, applied progressively while typing
-function formatNational(digits) {
-  if (digits.length <= 3) {
-    return digits;
-  }
-  if (digits.length <= 6) {
-    return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  }
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-}
+import { formatNational, nationalDigits } from "../lib/phone-format.js";
 
 export default class PhoneVerificationBox extends Component {
   @service siteSettings;
