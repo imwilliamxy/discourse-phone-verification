@@ -12,7 +12,7 @@ module PhoneVerification
 
     def self.check(raw_phone)
       return { allowed: true } unless SiteSetting.phone_verification_block_voip
-      return { allowed: true } if SiteSetting.phone_verification_debug_mode
+      return { allowed: true } if PhoneVerification.debug_mode?
 
       formatted = UserPhoneRecord.normalize(raw_phone)
       key = cache_key(formatted)

@@ -10,6 +10,16 @@ enabled_site_setting :phone_verification_enabled
 
 module ::PhoneVerification
   PLUGIN_NAME = "uscardforum-phone-verification"
+
+  # Debug mode skips SMS and accepts any 6-digit code. On production it only
+  # takes effect when the container env also opts in, so flipping the site
+  # setting alone can never disable verification on a live site.
+  def self.debug_mode?
+    return false unless SiteSetting.phone_verification_debug_mode
+    return true unless Rails.env.production?
+
+    ENV["DISCOURSE_PHONE_VERIFICATION_ALLOW_DEBUG_MODE"].to_s == "true"
+  end
 end
 
 require_relative "lib/phone_verification/engine"

@@ -38,6 +38,16 @@ RSpec.describe PhoneVerification::PhoneVerificationController, type: :request do
       expect(response.status).to eq(200)
       expect(response.parsed_body["success"]).to be true
     end
+
+    it "counts the request against the requester's IP" do
+      Discourse.redis.flushdb
+      post "/phone-verification/send-code.json", params: { phone_number: phone }
+
+      today = Time.zone.now.strftime("%Y%m%d")
+      expect(
+        Discourse.redis.get("phone_verification:daily_ip:127.0.0.1:#{today}")
+      ).to eq("1")
+    end
   end
 
   describe "POST /phone-verification/verify-code" do

@@ -98,9 +98,30 @@ plugins:
       phone_verification_sms_provider:
         - twilio
     depends_behavior: "hidden"
+  phone_verification_send_code_min_trust_level:
+    default: 1
+    type: enum
+    choices:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
   phone_verification_sms_daily_limit_per_user:
     default: 5
     type: integer
+  phone_verification_sms_daily_limit_per_phone:
+    default: 3
+    type: integer
+    min: 1
+  phone_verification_sms_daily_limit_per_ip:
+    default: 10
+    type: integer
+    min: 1
+  phone_verification_sms_daily_limit_global:
+    default: 1000
+    type: integer
+    min: 1
   phone_verification_verification_code_expiry_minutes:
     default: 10
     type: integer

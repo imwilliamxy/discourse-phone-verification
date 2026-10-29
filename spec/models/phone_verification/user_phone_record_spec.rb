@@ -68,6 +68,20 @@ RSpec.describe PhoneVerification::UserPhoneRecord, type: :model do
       expect(new_record.valid?).to be true
     end
 
+    it "only accepts US area codes within +1" do
+      expect(described_class.valid_us_phone?("+14155552671")).to be true
+      expect(described_class.valid_us_phone?("+17875552671")).to be true # Puerto Rico
+
+      expect(described_class.valid_us_phone?("+18765552671")).to be false # Jamaica
+      expect(described_class.valid_us_phone?("+18095552671")).to be false # Dominican Republic
+      expect(described_class.valid_us_phone?("+14165552671")).to be false # Toronto
+      expect(described_class.valid_us_phone?("+19005552671")).to be false # premium rate
+      expect(described_class.valid_us_phone?("+18005552671")).to be false # toll-free
+      expect(described_class.valid_us_phone?("+14115552671")).to be false # N11
+      expect(described_class.valid_us_phone?("+14915552671")).to be false # N9X reserved
+      expect(described_class.valid_us_phone?("+14150552671")).to be false # exchange starts with 0
+    end
+
     it "correctly produces masked phone format" do
       record = described_class.new(phone_number: "+14155552671")
       expect(record.masked_phone_number).to eq("+1 (***) ***-2671")
