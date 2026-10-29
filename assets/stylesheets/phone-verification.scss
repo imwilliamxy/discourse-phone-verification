@@ -64,6 +64,32 @@
         margin: 0;
       }
     }
+
+    .phone-input {
+      display: flex;
+      align-items: stretch;
+      max-width: 260px;
+
+      &__prefix {
+        display: flex;
+        align-items: center;
+        padding: 0 0.65em;
+        border: 1px solid var(--primary-low-mid);
+        border-right: none;
+        border-radius: var(--d-input-border-radius, 4px) 0 0
+          var(--d-input-border-radius, 4px);
+        background-color: var(--primary-very-low);
+        color: var(--primary-medium);
+      }
+
+      input.phone-input__number {
+        flex: 1;
+        min-width: 0;
+        margin: 0;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+      }
+    }
   }
 }
 
