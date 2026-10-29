@@ -8,6 +8,13 @@
 
 enabled_site_setting :phone_verification_enabled
 
+register_asset "stylesheets/phone-verification.scss"
+
+register_svg_icon "mobile-screen"
+register_svg_icon "shield-halved"
+register_svg_icon "circle-info"
+register_svg_icon "circle-check"
+
 module ::PhoneVerification
   PLUGIN_NAME = "uscardforum-phone-verification"
 
@@ -32,6 +39,7 @@ after_initialize do
   register_problem_check ProblemCheck::PhoneVerificationMissingDynamicGroups
 
   require_relative "app/jobs/scheduled/sync_disposable_phone_numbers"
+  require_relative "app/jobs/regular/send_phone_verification_prompt"
 
   # Event hooks for Trust Level & account status changes
   on(:user_promoted) do |payload|
@@ -43,6 +51,15 @@ after_initialize do
 
       old_tl = payload[:old_trust_level]
       new_tl = payload[:new_trust_level]
+
+      # Tell users who just crossed the threshold that they need to verify.
+      # Runs as a job so a failure can't break the promotion itself.
+      min_tl = SiteSetting.phone_verification_min_trust_level.to_i
+      if SiteSetting.phone_verification_prompt_pm_enabled && old_tl && new_tl &&
+           old_tl < min_tl && new_tl >= min_tl
+        Jobs.enqueue(:send_phone_verification_prompt, user_id: user.id)
+      end
+
       # Core drops trust level group memberships with delete_all on demotion,
       # which fires no user_removed_from_group events; dynamic groups need them.
       if old_tl && new_tl && new_tl < old_tl
@@ -130,6 +147,13 @@ after_initialize do
       active: record.active
     }
   end
+
+  # Lets the banner hide itself once the current user has verified
+  add_to_serializer(
+    :current_user,
+    :phone_verified,
+    include_condition: -> { SiteSetting.phone_verification_banner_enabled }
+  ) { PhoneVerification::UserPhoneRecord.active.exists?(user_id: object.id) }
 
   # Site serializer extension to expose whether discourse-dynamic-groups is installed
   add_to_serializer(

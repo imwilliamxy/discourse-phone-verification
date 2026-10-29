@@ -13,6 +13,10 @@ zh_CN:
       phone_verification_twilio_auth_token: "Twilio Auth Token"
       phone_verification_twilio_from_phone_number: "Twilio 发送方电话号码"
       phone_verification_twilio_messaging_service_sid: "Twilio Messaging Service SID"
+      phone_verification_banner_enabled: "启用手机验证横幅"
+      phone_verification_banner_until: "横幅显示截止日期"
+      phone_verification_banner_text: "横幅文字"
+      phone_verification_prompt_pm_enabled: "升级时发送手机验证私信"
       phone_verification_send_code_min_trust_level: "发送验证码所需的最低信任等级"
       phone_verification_sms_daily_limit_per_user: "单用户每日短信发送上限"
       phone_verification_sms_daily_limit_per_phone: "单号码每日短信发送上限"
@@ -42,6 +46,10 @@ zh_CN:
       phone_verification_twilio_auth_token: "Twilio|Token|令牌"
       phone_verification_twilio_from_phone_number: "Twilio|发送号码|主叫号码"
       phone_verification_twilio_messaging_service_sid: "Twilio|Service SID"
+      phone_verification_banner_enabled: "横幅|公告|提示|过渡期"
+      phone_verification_banner_until: "横幅|日期|截止"
+      phone_verification_banner_text: "横幅|文字|公告"
+      phone_verification_prompt_pm_enabled: "私信|升级|信任等级|通知"
       phone_verification_send_code_min_trust_level: "信任等级|TL|最低|短信|防刷"
       phone_verification_sms_daily_limit_per_user: "每日上限|短信频次|防刷|限制"
       phone_verification_sms_daily_limit_per_phone: "每日上限|短信频次|防刷|号码"
@@ -66,6 +74,10 @@ zh_CN:
     phone_verification_twilio_auth_token: "Twilio Auth Token 访问令牌。"
     phone_verification_twilio_from_phone_number: "Twilio 发送方电话号码（E.164 格式，如 +14155552671）。"
     phone_verification_twilio_messaging_service_sid: "可选的 Twilio Messaging Service SID (MG...)。"
+    phone_verification_banner_enabled: "向已达到最低信任等级、但还没验证手机号的用户显示全站横幅，并链接到验证页面。用于板块开始要求手机验证的过渡期。"
+    phone_verification_banner_until: "横幅显示的最后一天，格式 YYYY-MM-DD。留空表示不设截止日期；日期格式不对时不显示横幅。"
+    phone_verification_banner_text: "横幅文字，留空使用默认文字。仅支持纯文本。"
+    phone_verification_prompt_pm_enabled: "用户升到最低信任等级、但还没验证手机号时，给他发一条私信。每人最多收到一次。私信内容可在 自定义 > 文字 里修改（system_messages.phone_verification_required）。"
     phone_verification_send_code_min_trust_level: "请求短信验证码所需的最低信任等级，管理人员不受限制。用于防止刚注册的小号被拿来刷短信。"
     phone_verification_sms_daily_limit_per_user: "单用户每日最大可请求短信验证码条数。"
     phone_verification_sms_daily_limit_per_phone: "同一手机号每日最多接收的验证码条数（所有账号合计）。"
@@ -81,6 +93,16 @@ zh_CN:
   dashboard:
     problem:
       phone_verification_missing_dynamic_groups: "手机号验证插件已启用，但尚未安装推荐的前置插件 <a href='https://github.com/communiteq/discourse-dynamic-groups' target='_blank'>discourse-dynamic-groups</a>。如需使用更灵活的动态用户组及复合板块限制规则，请在 app.yml 中添加该插件。"
+  system_messages:
+    phone_verification_required:
+      title: "需要验证手机号"
+      subject_template: "验证手机号，解锁信任等级 %{trust_level} 专属板块"
+      text_body_template: |
+        恭喜你升到信任等级 %{trust_level}！
+
+        部分信任等级 %{trust_level} 的专属板块只对验证过美国（+1）手机号的会员开放。你可以在[账户设置页面](%{verify_url})完成验证。
+
+        你的手机号不会展示给其他会员。
   phone_verification:
     sms_message: "【%{site_title}】您的验证码是 %{code}，%{expiry}分钟内有效。请勿向他人泄露。"
     errors:
