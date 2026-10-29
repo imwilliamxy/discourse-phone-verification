@@ -8,6 +8,13 @@
 
 enabled_site_setting :phone_verification_enabled
 
+register_asset "stylesheets/phone-verification.scss"
+
+register_svg_icon "mobile-screen"
+register_svg_icon "shield-halved"
+register_svg_icon "circle-info"
+register_svg_icon "circle-check"
+
 module ::PhoneVerification
   PLUGIN_NAME = "uscardforum-phone-verification"
 
