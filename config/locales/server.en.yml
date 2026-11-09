@@ -93,6 +93,8 @@ en:
   dashboard:
     problem:
       phone_verification_missing_dynamic_groups: "The Phone Verification plugin is enabled, but the recommended companion plugin <a href='https://github.com/communiteq/discourse-dynamic-groups' target='_blank'>discourse-dynamic-groups</a> is not installed. Dynamic group calculation and advanced category gatekeeping rules will not be active."
+      phone_verification_hmac_key_missing: "Phone Verification: the phone number hashing key is not pinned. Set DISCOURSE_PHONE_VERIFICATION_HMAC_KEY (32+ random characters) in the container env and rebuild. Until then the key is derived from secret_key_base, which on a standard install lives only in Redis; if it changes, every existing binding stops matching and those numbers can be bound to other accounts."
+      phone_verification_hmac_key_changed: "Phone Verification: %{count} active phone binding(s) were hashed with a different key than the current one, so the same numbers can now be bound to other accounts and the admin lookup cannot find them. Restore the previous key, or ask those users to re-verify (an admin can unbind them from the user page)."
   system_messages:
     phone_verification_required:
       title: "Phone verification needed"

@@ -41,6 +41,8 @@ after_initialize do
 
   require_relative "app/services/problem_check/phone_verification_missing_dynamic_groups"
   register_problem_check ProblemCheck::PhoneVerificationMissingDynamicGroups
+  require_relative "app/services/problem_check/phone_verification_hmac_key"
+  register_problem_check ProblemCheck::PhoneVerificationHmacKey
 
   require_relative "app/jobs/scheduled/sync_disposable_phone_numbers"
   require_relative "app/jobs/scheduled/sync_phone_verified_group"

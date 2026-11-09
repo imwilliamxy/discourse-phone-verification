@@ -6,8 +6,6 @@ module PhoneVerification
     # Plaintext numbers are no longer stored, see HashUserPhoneRecordNumbers
     self.ignored_columns = %w[phone_number]
 
-    HMAC_SALT = "phone_verification phone number hmac"
-
     belongs_to :user
 
     validates :user_id, presence: true
@@ -40,13 +38,15 @@ module PhoneVerification
       900
     ].to_set.freeze
 
-    # Numbers are stored as an HMAC keyed off the site's secret_key_base plus
-    # the last 4 digits, so a database dump or backup doesn't reveal them
-    # (a plain hash of a 10-digit number is trivial to brute-force).
-    # Changing secret_key_base means numbers bound before can be bound again.
+    # Numbers are stored as an HMAC plus the last 4 digits, so a database
+    # dump or backup doesn't reveal them (a plain hash of a 10-digit number
+    # is trivial to brute-force). See HmacKey for where the key comes from.
     def self.hash_phone_number(formatted_phone)
-      key = Rails.application.key_generator.generate_key(HMAC_SALT)
-      OpenSSL::HMAC.hexdigest("SHA256", key, formatted_phone.to_s)
+      OpenSSL::HMAC.hexdigest(
+        "SHA256",
+        PhoneVerification::HmacKey.current,
+        formatted_phone.to_s
+      )
     end
 
     def self.mask(formatted_phone)
@@ -88,6 +88,8 @@ module PhoneVerification
       @phone_number = raw_phone.present? ? self.class.normalize(raw_phone) : nil
       self.phone_number_hash =
         @phone_number && self.class.hash_phone_number(@phone_number)
+      self.hmac_key_fingerprint =
+        @phone_number && PhoneVerification::HmacKey.fingerprint
       self.phone_number_last4 = @phone_number && @phone_number[-4..]
     end
 
