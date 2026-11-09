@@ -46,6 +46,7 @@ export default class PhoneVerificationLookup extends Component {
     this.searching = true;
     try {
       this.result = await ajax("/phone-verification/admin/lookup.json", {
+        type: "POST",
         data: { phone_number: `+1${this.digits}` },
       });
     } catch (e) {

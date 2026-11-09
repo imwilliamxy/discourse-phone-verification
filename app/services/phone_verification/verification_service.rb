@@ -83,82 +83,67 @@ module PhoneVerification
         )
       end
 
-      sent = false
-      begin
-        # Check daily limits (bypassed in debug mode)
-        daily_limits = daily_limits_for(formatted_phone)
-        limit_reached =
-          daily_limits.any? do |key, limit|
-            Discourse.redis.get(key).to_i >= limit
-          end
-        if limit_reached && !PhoneVerification.debug_mode?
+      # Everything past this point can cost money (a paid line-type lookup,
+      # then the SMS), so the request takes one unit of every daily limit up
+      # front and keeps the cooldown whatever the outcome. Only a request
+      # turned away by the limits themselves, which spends nothing, gets its
+      # cooldown back.
+      unless reserve_daily_quota(formatted_phone)
+        Discourse.redis.del(cooldown_key)
+        return(
+          {
+            success: false,
+            error: I18n.t("phone_verification.errors.daily_limit_exceeded")
+          }
+        )
+      end
+
+      # Check VoIP / Landline line type intelligence (Layer 2)
+      line_check = LineTypeChecker.check(formatted_phone)
+      unless line_check[:allowed]
+        return { success: false, error: line_check[:error] }
+      end
+
+      # Generate 6-digit OTP
+      code = format("%06d", SecureRandom.random_number(1_000_000))
+      expiry_minutes =
+        SiteSetting.phone_verification_verification_code_expiry_minutes
+
+      # Send SMS (skipped in debug mode)
+      if PhoneVerification.debug_mode?
+        Rails.logger.info(
+          "[PhoneVerification DEBUG] Generated verification code #{code} for #{UserPhoneRecord.mask(formatted_phone)} (SMS sending skipped)"
+        )
+      else
+        site_title = SiteSetting.title
+        sms_text =
+          I18n.t(
+            "phone_verification.sms_message",
+            site_title: site_title,
+            code: code,
+            expiry: expiry_minutes
+          )
+
+        provider = SmsProvider::Factory.get
+        result = provider.send_sms(to: formatted_phone, message: sms_text)
+
+        # Provider errors can contain account IDs and IAM user names; the
+        # providers already log the details, users only get a generic message.
+        unless result.success?
           return(
             {
               success: false,
-              error: I18n.t("phone_verification.errors.daily_limit_exceeded")
+              error: I18n.t("phone_verification.errors.sms_send_failed")
             }
           )
         end
-
-        # Check VoIP / Landline line type intelligence (Layer 2)
-        line_check = LineTypeChecker.check(formatted_phone)
-        unless line_check[:allowed]
-          return { success: false, error: line_check[:error] }
-        end
-
-        # Generate 6-digit OTP
-        code = format("%06d", SecureRandom.random_number(1_000_000))
-        expiry_minutes =
-          SiteSetting.phone_verification_verification_code_expiry_minutes
-
-        # Send SMS (skipped in debug mode)
-        if PhoneVerification.debug_mode?
-          Rails.logger.info(
-            "[PhoneVerification DEBUG] Generated verification code #{code} for #{UserPhoneRecord.mask(formatted_phone)} (SMS sending skipped)"
-          )
-        else
-          site_title = SiteSetting.title
-          sms_text =
-            I18n.t(
-              "phone_verification.sms_message",
-              site_title: site_title,
-              code: code,
-              expiry: expiry_minutes
-            )
-
-          provider = SmsProvider::Factory.get
-          result = provider.send_sms(to: formatted_phone, message: sms_text)
-
-          # Provider errors can contain account IDs and IAM user names; the
-          # providers already log the details, users only get a generic message.
-          unless result.success?
-            return(
-              {
-                success: false,
-                error: I18n.t("phone_verification.errors.sms_send_failed")
-              }
-            )
-          end
-        end
-
-        # Save to Redis; a new code gets a fresh attempt budget
-        code_key = "phone_verification:code:#{@user.id}"
-        payload = { phone: formatted_phone, code: code }.to_json
-        Discourse.redis.setex(code_key, expiry_minutes * 60, payload)
-        Discourse.redis.del(attempts_key_for(@user))
-
-        # Increment daily counts
-        unless PhoneVerification.debug_mode?
-          daily_limits.each_key do |key|
-            Discourse.redis.incr(key)
-            Discourse.redis.expire(key, 86_400)
-          end
-        end
-
-        sent = true
-      ensure
-        Discourse.redis.del(cooldown_key) unless sent
       end
+
+      # Save to Redis; a new code gets a fresh attempt budget
+      code_key = "phone_verification:code:#{@user.id}"
+      payload = { phone: formatted_phone, code: code }.to_json
+      Discourse.redis.setex(code_key, expiry_minutes * 60, payload)
+      Discourse.redis.del(attempts_key_for(@user))
 
       { success: true, cooldown_seconds: COOLDOWN_SECONDS }
     end
@@ -314,24 +299,56 @@ module PhoneVerification
 
     private
 
+    # Takes one unit of every daily limit, or none if any limit is used up.
+    # INCR returns the new count atomically, so concurrent requests can't all
+    # read the same count and slip under a limit together; a request that
+    # would go over gives back what it took. Debug mode has no limits.
+    def reserve_daily_quota(formatted_phone)
+      return true if PhoneVerification.debug_mode?
+
+      taken =
+        daily_limits_for(formatted_phone).map do |key, limit|
+          count = Discourse.redis.incr(key)
+          Discourse.redis.expire(key, 86_400)
+          [key, count <= limit]
+        end
+      return true if taken.all? { |_key, within_limit| within_limit }
+
+      taken.each { |key, _within_limit| Discourse.redis.decr(key) }
+      false
+    end
+
     # Redis counter key => daily limit. Limits per account alone don't stop
     # SMS pumping from many fresh accounts, so the number, the IP and the
     # whole site are capped too.
     def daily_limits_for(formatted_phone)
       today = Time.zone.now.strftime("%Y%m%d")
+      phone_hash = UserPhoneRecord.hash_phone_number(formatted_phone)
       limits = {
         "phone_verification:daily:#{@user.id}:#{today}" =>
           SiteSetting.phone_verification_sms_daily_limit_per_user,
-        "phone_verification:daily_phone:#{formatted_phone}:#{today}" =>
+        "phone_verification:daily_phone:#{phone_hash}:#{today}" =>
           SiteSetting.phone_verification_sms_daily_limit_per_phone,
         "phone_verification:daily_global:#{today}" =>
           SiteSetting.phone_verification_sms_daily_limit_global
       }
-      if @ip_address.present?
-        limits["phone_verification:daily_ip:#{@ip_address}:#{today}"] =
+      if (ip_bucket = self.class.ip_bucket(@ip_address))
+        limits["phone_verification:daily_ip:#{ip_bucket}:#{today}"] =
           SiteSetting.phone_verification_sms_daily_limit_per_ip
       end
       limits
+    end
+
+    # One IPv6 subscriber usually gets a whole /64, so counting exact IPv6
+    # addresses would let one machine rotate through billions of them.
+    def self.ip_bucket(ip_address)
+      return nil if ip_address.blank?
+
+      addr = IPAddr.new(ip_address.to_s)
+      addr = addr.native if addr.ipv4_mapped?
+      addr.ipv6? ? "#{addr.mask(64)}/64" : addr.to_s
+    rescue IPAddr::InvalidAddressError
+      ip_address.to_s
     end
 
     def attempts_key_for(user)

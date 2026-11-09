@@ -61,8 +61,14 @@ export default class PhoneVerificationBox extends Component {
     return this.args.model.id === this.currentUser.id;
   }
 
+  // Membership is the real answer: a verified user at the right trust level
+  // can still be out of the group, e.g. while suspended.
   get qualifiesForGatedCategories() {
-    return this.phoneVerified && this.currentTrustLevel >= this.minTrustLevel;
+    return (
+      this.phoneVerified &&
+      this.currentTrustLevel >= this.minTrustLevel &&
+      this.inGatekeeperGroup
+    );
   }
 
   get phoneDigits() {

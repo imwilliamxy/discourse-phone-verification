@@ -6,7 +6,8 @@ PhoneVerification::Engine.routes.draw do
   post "verify-code" => "phone_verification#verify_code"
   post "unbind" => "phone_verification#unbind"
 
-  get "admin/lookup" => "admin#lookup"
+  # POST so the number stays out of the URL, and so out of access logs
+  post "admin/lookup" => "admin#lookup"
   delete "admin/users/:user_id" => "admin#unbind"
 end
 

@@ -43,6 +43,7 @@ after_initialize do
   register_problem_check ProblemCheck::PhoneVerificationMissingDynamicGroups
 
   require_relative "app/jobs/scheduled/sync_disposable_phone_numbers"
+  require_relative "app/jobs/scheduled/sync_phone_verified_group"
   require_relative "app/jobs/regular/send_phone_verification_prompt"
 
   # Event hooks for Trust Level & account status changes
@@ -105,7 +106,7 @@ after_initialize do
          phone_verification_min_trust_level
          phone_verification_group_name
        ].include?(setting_sym)
-      PhoneVerification::GroupSyncService.sync_all
+      Jobs.enqueue(:sync_phone_verified_group)
     end
 
     if %i[
