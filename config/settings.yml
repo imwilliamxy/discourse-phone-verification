@@ -125,6 +125,7 @@ plugins:
   phone_verification_sms_daily_limit_per_user:
     default: 5
     type: integer
+    min: 1
   phone_verification_sms_daily_limit_per_phone:
     default: 3
     type: integer
@@ -140,6 +141,8 @@ plugins:
   phone_verification_verification_code_expiry_minutes:
     default: 10
     type: integer
+    min: 1
+    max: 60
   phone_verification_debug_mode:
     default: false
     client: false
@@ -172,7 +175,7 @@ plugins:
     client: false
     type: bool
   phone_verification_lookup_cache_ttl_days:
-    default: 30
+    default: 180
     type: integer
     min: 1
     max: 365

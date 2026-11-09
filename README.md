@@ -14,14 +14,14 @@ Discourse 手机号验证插件，支持美国（+1）手机号短信验证码�
    - 个人偏好设置页面中对本人脱敏显示（如 `+1 (***) ***-1234`）。
    - 数据库不存手机号明文，只存号码的 HMAC（密钥由 Discourse 的 `secret_key_base` 派生）和后四位；数据库导出或备份泄露也不会暴露号码。管理后台（Admin -> Users -> 详情页）同样只显示后四位。注意：更换 `secret_key_base` 后，之前绑定的号码无法再做重复检测。
    - 用户被匿名化（anonymize）时，其手机号记录一并删除；请求日志中的 `phone_number` 参数会被过滤，插件日志里的号码只保留后四位。
-   - 短信防刷：单用户 60 秒发送冷却、每日发送次数上限、验证码有效期（10分钟）、最大重试错误次数（5次）。
+   - 短信防刷：单用户 60 秒发送冷却；按账号、号码、IP（IPv6 按 /64）和全站四个维度的每日请求上限，每次请求都计数（包括被判定为 VoIP/座机而被拒的请求，因为号码查询同样收费）；验证码有效期（10分钟）、最大重试错误次数（5次）。
 3. **多重限制与用户组联动**：
    - **基础同步**：插件内置轻量级加组服务，支持将满足条件的用户自动同步至 `phone_verified` 用户组。
-   - **动态规则（推荐）**：与 [discourse-dynamic-groups](https://github.com/communiteq/discourse-dynamic-groups) 深度配合，支持通过灵活的 SQL 规则构建诸如「Trust Level X 且已验证手机号」的复合限制策略。
+   - **动态规则（推荐）**：与 [discourse-dynamic-groups](https://github.com/communiteq/discourse-dynamic-groups) 深度配合，用组名、徽章和 AND / OR / NOT 组合出更复杂的准入条件（规则写法见第 4 节）。只需要「TL X 且已验证」时不必装它，直接用 `phone_verified` 组即可。
    - **原生板块权限**：管理员通过 Discourse 原生 `Category -> Security` 权限为用户组分配 `See / Reply / Create` 访问控制。
 4. **防接码小号与虚拟号码 (VoIP) 拦截**：
    - **一次性接码号拦截 (Disposable)**：内置开源接码数据库（基于 `iP1SMS/disposable-phone-numbers` 每日同步至 Redis Set）与自定义黑名单，以 $O(1)$ 速度在短信发送前直接拦截廉价接码平台号码，零 API 费用。
-   - **虚拟运营商 (VoIP) 与固定电话拦截**：支持通过 Twilio Lookup v2 或 AWS Pinpoint 实时检测号码运营商线路类型（Line Type），仅放行实体移动卡（`mobile` / `prepaid`），拦截 Google Voice、TextNow、Skype 等虚拟号，并对查询结果进行 Redis 长期缓存（默认 30 天）以严格控制 API 成本。
+   - **虚拟运营商 (VoIP) 与固定电话拦截**：支持通过 Twilio Lookup v2 或 AWS Pinpoint 实时检测号码运营商线路类型（Line Type），仅放行实体移动卡（`mobile` / `prepaid`），拦截 Google Voice、TextNow、Skype 等虚拟号，并对查询结果进行 Redis 缓存（默认 180 天；号码可能携号转网，不宜永久保留）以控制 API 成本。
 5. **可扩展 SMS Provider 架构**：
    - 抽象通用短信适配器接口，已实现 **AWS SNS** 与 **Twilio**，并支持灵活扩展。
 
@@ -85,50 +85,32 @@ hooks:
 | `phone_verification_disposable_list_url` | jsDelivr URL | 开源一次性接码号段数据源 URL (iP1SMS) |
 | `phone_verification_custom_disposable_numbers` | `""` | 管理员自定义黑名单手机号列表（`\|` 分隔） |
 | `phone_verification_block_voip` | `false` | 启用虚拟运营商 (VoIP) 及固定电话拦截 |
-| `phone_verification_lookup_cache_ttl_days` | `30` | 线路类型查询结果在 Redis 中的缓存保留天数 |
+| `phone_verification_lookup_cache_ttl_days` | `180` | 线路类型查询结果在 Redis 中的缓存保留天数 |
 
 ---
 
-## 4. 配合 discourse-dynamic-groups 配置板块限制 (Best Practice)
+## 4. 板块准入怎么配 (Best Practice)
 
-Discourse 原生的板块权限（Category Security）在多个组之间采用 **OR（满足任一即可）** 逻辑。为了实现 **“Trust Level 2 且 手机号已验证”** 的复合限制，推荐通过动态组进行组合：
+`phone_verified` 组由插件自动维护，成员 = **已验证手机号 + 信任等级 ≥ `phone_verification_min_trust_level` + 未被封禁**（发生变化时实时调整，另外每天全量复核一次，比如临时封禁到期后会被自动加回）。
 
-### 步骤 1：在后台创建动态用户组
-进入 `Admin -> Groups -> New Dynamic Group`，配置动态规则：
+所以「TL3 且已验证手机号」不需要任何其它插件：把 `phone_verification_min_trust_level` 设为 3，然后在目标板块的 Security 里授予 `phone_verified`，并**去掉原来授予的 `trust_level_3` 等组**。Discourse 的板块权限是「满足任一组即可」，留着 `trust_level_3`，没验证手机的 TL3 照样能进，等于没加限制。
 
-#### 示例 A：所有已验证手机号的用户
-```sql
-SELECT user_id 
-FROM user_phone_records 
-WHERE active = TRUE
-```
+需要更复杂的组合时再用 [discourse-dynamic-groups](https://github.com/communiteq/discourse-dynamic-groups)。它的规则**不是 SQL**，而是由组名、徽章（`badge:徽章slug` 或 `badge:徽章id`）、`AND` / `OR` / `NOT` 和括号组成的表达式，组名和徽章必须已存在。
 
-#### 示例 B：Trust Level >= 2 且 已验证手机号（未封禁）
-```sql
-SELECT u.id AS user_id
-FROM users u
-JOIN user_phone_records r ON r.user_id = u.id AND r.active = TRUE
-WHERE u.trust_level >= 2
-  AND u.active = TRUE
-  AND NOT u.suspended
-```
+### 步骤 1：（可选）在后台创建动态用户组
+进入 `Admin -> Groups -> New Dynamic Group`，填写规则，例如：
 
-#### 示例 C：高门槛复合组（TL3 + 手机验证 + 注册满 30 天）
-```sql
-SELECT u.id AS user_id
-FROM users u
-JOIN user_phone_records r ON r.user_id = u.id AND r.active = TRUE
-WHERE u.trust_level >= 3
-  AND u.created_at <= NOW() - INTERVAL '30 days'
-  AND u.active = TRUE
-  AND NOT u.suspended
-```
+- `phone_verified AND trust_level_4`：TL4 且已验证手机号
+- `phone_verified OR staff`：已验证手机号的用户，外加管理人员
+- `phone_verified OR trust_level_4`：已验证手机号的用户，外加不必验证的 TL4
+
+如果要给不同板块设不同门槛（比如一个板块要 TL2、另一个要 TL3），把 `phone_verification_min_trust_level` 设成最低的那个，再分别建 `phone_verified AND trust_level_2`、`phone_verified AND trust_level_3` 两个动态组。
 
 ### 步骤 2：为目标板块设置权限 (Category Security)
 1. 前往 `Admin -> Categories -> [目标板块] -> Security`。
 2. 移除 `everyone` 组或降低其权限。
-3. 添加刚刚创建的动态组（例如 `phone_verified_tl2`）。
-4. 授予该动态组 `See / Reply / Create` 权限并保存。
+3. 添加 `phone_verified`（或上一步建的动态组），并去掉原来授予的 `trust_level_X` 等组。
+4. 授予 `See / Reply / Create` 权限并保存。
 
 ---
 
@@ -148,6 +130,8 @@ WHERE u.trust_level >= 3
 ### 5.3 自动化成员同步
 - **自动加入**：当用户完成手机号短信验证，且当前信任等级达到设定门槛（`Trust Level >= phone_verification_min_trust_level`）且账号未被封禁时，插件自动将其加入该组。
 - **自动移出**：当用户**主动解绑手机号**、**账号被封禁 (Suspended)** 或**信任等级下降**至门槛以下时，插件会自动将其从该组移除。
+- **每日复核**：后台任务每天把所有已验证用户和组内成员重新核对一遍，处理不会触发事件的变化（例如临时封禁到期后自动加回）。修改最低信任等级或组名后，同步也在后台任务里进行。
+- **注意**：修改 `phone_verification_group_name` 后，旧组里的成员不会被自动清空；如有板块仍授予旧组，请手动处理。
 
 ---
 

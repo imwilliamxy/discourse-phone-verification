@@ -154,6 +154,9 @@ RSpec.describe PhoneVerification::VerificationService do
 
   describe "#send_code abuse protection" do
     let(:today) { Time.zone.now.strftime("%Y%m%d") }
+    let(:phone_hash) do
+      PhoneVerification::UserPhoneRecord.hash_phone_number(phone)
+    end
 
     context "when the user's trust level is below the send threshold" do
       fab!(:new_user) { Fabricate(:user, trust_level: TrustLevel[0]) }
@@ -199,7 +202,9 @@ RSpec.describe PhoneVerification::VerificationService do
         Discourse.redis.get("phone_verification:daily:#{user.id}:#{today}")
       ).to eq("1")
       expect(
-        Discourse.redis.get("phone_verification:daily_phone:#{phone}:#{today}")
+        Discourse.redis.get(
+          "phone_verification:daily_phone:#{phone_hash}:#{today}"
+        )
       ).to eq("1")
       expect(
         Discourse.redis.get("phone_verification:daily_ip:1.2.3.4:#{today}")
@@ -211,7 +216,10 @@ RSpec.describe PhoneVerification::VerificationService do
 
     it "blocks a number that reached its daily limit, whichever account asks" do
       SiteSetting.phone_verification_sms_daily_limit_per_phone = 2
-      Discourse.redis.set("phone_verification:daily_phone:#{phone}:#{today}", 2)
+      Discourse.redis.set(
+        "phone_verification:daily_phone:#{phone_hash}:#{today}",
+        2
+      )
 
       result = described_class.send_code(user: user, phone_number: phone)
       expect(result[:error]).to eq(
@@ -264,7 +272,7 @@ RSpec.describe PhoneVerification::VerificationService do
         ).and_return(failing_provider)
       end
 
-      it "returns a generic error and does not start the cooldown" do
+      it "returns a generic error, keeps the cooldown and counts the attempt" do
         result = described_class.send_code(user: user, phone_number: phone)
         expect(result[:success]).to be false
         expect(result[:error]).to eq(
@@ -272,8 +280,133 @@ RSpec.describe PhoneVerification::VerificationService do
         )
         expect(
           Discourse.redis.get("phone_verification:cooldown:#{user.id}")
-        ).to be_nil
+        ).to be_present
+        expect(
+          Discourse.redis.get("phone_verification:daily:#{user.id}:#{today}")
+        ).to eq("1")
       end
+    end
+
+    context "when the paid line type lookup rejects or fails" do
+      let(:mock_lookup) do
+        instance_double(PhoneVerification::LookupProvider::Base)
+      end
+
+      before do
+        SiteSetting.phone_verification_block_voip = true
+        allow(PhoneVerification::LookupProvider::Factory).to receive(
+          :get
+        ).and_return(mock_lookup)
+      end
+
+      it "counts a VoIP rejection against every daily limit and keeps the cooldown" do
+        allow(mock_lookup).to receive(:lookup).and_return(
+          PhoneVerification::LookupProvider::Result.new(
+            success: true,
+            line_type: "nonFixedVoip",
+            carrier_name: "Google Voice"
+          )
+        )
+
+        result =
+          described_class.send_code(
+            user: user,
+            phone_number: phone,
+            ip_address: "1.2.3.4"
+          )
+        expect(result[:error]).to eq(
+          I18n.t("phone_verification.errors.voip_phone_blocked")
+        )
+        %W[
+          phone_verification:daily:#{user.id}:#{today}
+          phone_verification:daily_phone:#{phone_hash}:#{today}
+          phone_verification:daily_ip:1.2.3.4:#{today}
+          phone_verification:daily_global:#{today}
+        ].each { |key| expect(Discourse.redis.get(key)).to eq("1") }
+
+        repeat = described_class.send_code(user: user, phone_number: phone)
+        expect(repeat[:error]).to include("Please wait")
+      end
+
+      it "stops paying for lookups once the user's daily limit is used up" do
+        SiteSetting.phone_verification_sms_daily_limit_per_user = 2
+        allow(mock_lookup).to receive(:lookup).and_return(
+          PhoneVerification::LookupProvider::Result.new(
+            success: false,
+            error_message: "lookup down"
+          )
+        )
+
+        results =
+          3.times.map do |i|
+            Discourse.redis.del("phone_verification:cooldown:#{user.id}")
+            described_class.send_code(
+              user: user,
+              phone_number: "+1415555#{format("%04d", 2000 + i)}"
+            )
+          end
+
+        expect(results.map { |r| r[:error] }).to eq(
+          [
+            I18n.t("phone_verification.errors.lookup_failed"),
+            I18n.t("phone_verification.errors.lookup_failed"),
+            I18n.t("phone_verification.errors.daily_limit_exceeded")
+          ]
+        )
+        expect(mock_lookup).to have_received(:lookup).twice
+      end
+    end
+
+    it "gives back what it took when one limit turns the request away" do
+      SiteSetting.phone_verification_sms_daily_limit_per_ip = 1
+      Discourse.redis.set("phone_verification:daily_ip:1.2.3.4:#{today}", 1)
+
+      result =
+        described_class.send_code(
+          user: user,
+          phone_number: phone,
+          ip_address: "1.2.3.4"
+        )
+      expect(result[:error]).to eq(
+        I18n.t("phone_verification.errors.daily_limit_exceeded")
+      )
+      expect(
+        Discourse.redis.get("phone_verification:daily:#{user.id}:#{today}")
+      ).to eq("0")
+      expect(
+        Discourse.redis.get("phone_verification:daily_ip:1.2.3.4:#{today}")
+      ).to eq("1")
+    end
+
+    it "counts IPv6 addresses per /64" do
+      SiteSetting.phone_verification_sms_daily_limit_per_ip = 1
+      described_class.send_code(
+        user: user,
+        phone_number: phone,
+        ip_address: "2001:db8:1:2::1"
+      )
+
+      other_user = Fabricate(:user, trust_level: TrustLevel[1])
+      result =
+        described_class.send_code(
+          user: other_user,
+          phone_number: "+14155552672",
+          ip_address: "2001:db8:1:2:ffff::9"
+        )
+      expect(result[:error]).to eq(
+        I18n.t("phone_verification.errors.daily_limit_exceeded")
+      )
+    end
+  end
+
+  describe ".ip_bucket" do
+    it "groups IPv6 addresses by /64 and keeps IPv4 as is" do
+      expect(described_class.ip_bucket("2001:db8:1:2:3:4:5:6")).to eq(
+        "2001:db8:1:2::/64"
+      )
+      expect(described_class.ip_bucket("1.2.3.4")).to eq("1.2.3.4")
+      expect(described_class.ip_bucket("::ffff:1.2.3.4")).to eq("1.2.3.4")
+      expect(described_class.ip_bucket(nil)).to be_nil
     end
   end
 

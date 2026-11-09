@@ -7,7 +7,8 @@ module PhoneVerification
     requires_plugin ::PhoneVerification::PLUGIN_NAME
 
     # Which accounts a number is (or was) bound to. Works from the HMAC, so
-    # the number itself is never stored or logged.
+    # the number itself is never stored; it arrives in a POST body, which
+    # keeps it out of access logs, and Rails filters it from the app log.
     def lookup
       params.require(:phone_number)
       formatted = UserPhoneRecord.normalize(params[:phone_number])

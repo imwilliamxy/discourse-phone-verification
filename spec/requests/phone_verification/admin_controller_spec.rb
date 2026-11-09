@@ -27,10 +27,10 @@ RSpec.describe PhoneVerification::AdminController, type: :request do
     PhoneVerification::GroupSyncService.sync_user(user)
   end
 
-  describe "GET /phone-verification/admin/lookup" do
+  describe "POST /phone-verification/admin/lookup" do
     it "lists current and previous accounts for the number and logs the lookup" do
       sign_in(admin)
-      get "/phone-verification/admin/lookup.json",
+      post "/phone-verification/admin/lookup.json",
           params: {
             phone_number: "(415) 555-2671"
           }
@@ -49,7 +49,7 @@ RSpec.describe PhoneVerification::AdminController, type: :request do
 
     it "returns no bindings for an unknown number" do
       sign_in(admin)
-      get "/phone-verification/admin/lookup.json",
+      post "/phone-verification/admin/lookup.json",
           params: {
             phone_number: "+12125550123"
           }
@@ -59,7 +59,7 @@ RSpec.describe PhoneVerification::AdminController, type: :request do
 
     it "rejects numbers that can't be bound" do
       sign_in(admin)
-      get "/phone-verification/admin/lookup.json",
+      post "/phone-verification/admin/lookup.json",
           params: {
             phone_number: "+18765552671"
           }
@@ -68,7 +68,7 @@ RSpec.describe PhoneVerification::AdminController, type: :request do
 
     it "is not available to moderators" do
       sign_in(moderator)
-      get "/phone-verification/admin/lookup.json",
+      post "/phone-verification/admin/lookup.json",
           params: {
             phone_number: phone
           }
