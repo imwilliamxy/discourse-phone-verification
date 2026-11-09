@@ -93,6 +93,8 @@ zh_CN:
   dashboard:
     problem:
       phone_verification_missing_dynamic_groups: "手机号验证插件已启用，但尚未安装推荐的前置插件 <a href='https://github.com/communiteq/discourse-dynamic-groups' target='_blank'>discourse-dynamic-groups</a>。如需使用更灵活的动态用户组及复合板块限制规则，请在 app.yml 中添加该插件。"
+      phone_verification_hmac_key_missing: "手机号验证插件：号码哈希密钥没有固定。请在容器环境变量中设置 DISCOURSE_PHONE_VERIFICATION_HMAC_KEY（至少 32 位随机字符）并重建。在此之前，密钥由 secret_key_base 派生，而标准安装里它只存在 Redis 中；一旦变化，已有绑定全部无法匹配，这些号码可以再被别的账号绑定。"
+      phone_verification_hmac_key_changed: "手机号验证插件：有 %{count} 条有效绑定是用另一把密钥计算的，与当前密钥不一致，因此这些号码可以再被别的账号绑定，管理员按号查找也查不到它们。请恢复原来的密钥，或让这些用户重新验证（管理员可在用户详情页为其解除绑定）。"
   system_messages:
     phone_verification_required:
       title: "需要验证手机号"

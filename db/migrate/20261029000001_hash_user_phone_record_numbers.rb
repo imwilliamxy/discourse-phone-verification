@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class HashUserPhoneRecordNumbers < ActiveRecord::Migration[7.0]
-  # Must match PhoneVerification::UserPhoneRecord::HMAC_SALT
+  # Must match PhoneVerification::HmacKey::FALLBACK_SALT
   HMAC_SALT = "phone_verification phone number hmac"
 
   def up
